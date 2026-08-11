@@ -76,17 +76,42 @@ above (or import directly from the GA4 `generate_lead`/`click_phone`/
 `click_whatsapp`/`click_email` events once GA4 has enough data) — no code
 changes needed, same pattern as GA4.
 
-### 5. Enquiry & referral forms
-Neither form has a backend in this codebase. On submit, `main.js`:
-1. Pushes the `enquiry_submitted` / `referral_submitted` dataLayer event.
-2. POSTs to `FORM_ENDPOINT` (in `static/js/main.js`) if one is configured.
-3. Always falls back to opening a pre-filled `mailto:` to
-   `thehealthwellbeinghub@gmail.com` so an enquiry is never silently lost.
+### 5. Enquiry & referral forms — ✅ wired to HubSpot
+`FORM_ENDPOINT` in `static/js/main.js` points at `/api/hubspot-submit`
+(`api/hubspot-submit.js`), a Vercel serverless function. On a real
+submission it:
+1. Finds-or-creates the Contact in HubSpot (search by email first, to
+   avoid duplicates on repeat enquiries).
+2. Creates a Deal at **New Enquiry** in the Participant / Lead Pipeline,
+   associated to the contact.
+3. Attaches a Note with the full enquiry/referral details (service
+   needed, suburb, preferred language, referrer info, etc. — kept out of
+   structured custom properties to avoid enum-mismatch write failures).
+4. Creates a `CALL` follow-up Task due immediately, associated to both,
+   so it surfaces in the next daily brief straight away.
 
-Recommended: wire up a real endpoint (Formspree, Netlify Forms, a
-Google Form via its formResponse endpoint, or a small server endpoint)
-and set `FORM_ENDPOINT` in `static/js/main.js`, then rebuild. This is a
-one-line change once you've picked a provider.
+The `HUBSPOT_TOKEN` Private App token lives only as an encrypted,
+server-side Vercel environment variable (Production) — never in this
+repo, never sent to the browser. If the token is ever rotated in
+HubSpot, update it with:
+```
+vercel env rm HUBSPOT_TOKEN production
+echo '<new-token>' | vercel env add HUBSPOT_TOKEN production
+vercel deploy --prod
+```
+(a redeploy is required for the function to pick up a changed env var).
+
+On submit, `main.js` still always:
+1. Pushes the `enquiry_submitted` / `referral_submitted` dataLayer event.
+2. POSTs JSON to `FORM_ENDPOINT`.
+3. Falls back to opening a pre-filled `mailto:` to
+   `thehealthwellbeinghub@gmail.com` if that call fails, so an enquiry is
+   never silently lost even if HubSpot is briefly unavailable.
+
+The `NEW_ENQUIRY_STAGE_ID` constant at the top of `hubspot-submit.js` is
+fixed to the "New Enquiry" stage of the current pipeline — update it if
+the pipeline is ever rebuilt (e.g. when the Referral Partner Pipeline
+gets its own slot after a plan upgrade and Pipeline A's stage IDs change).
 
 ### 6. Domain / canonical URL
 All canonical URLs, Open Graph tags and JSON-LD assume

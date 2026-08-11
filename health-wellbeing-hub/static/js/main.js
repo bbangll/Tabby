@@ -89,15 +89,21 @@
   });
 
   /* ---- Enquiry / referral forms ----
-     No backend is wired up in this codebase yet. On submit we:
-       1) push an `enquiry_submitted` dataLayer event (GTM/GA4/Ads hook),
-       2) POST to FORM_ENDPOINT if one has been configured,
+     On submit we:
+       1) push an `enquiry_submitted`/`referral_submitted` dataLayer event
+          (GTM/GA4/Ads hook),
+       2) POST to FORM_ENDPOINT — a serverless function (api/hubspot-submit.js)
+          that creates the Contact/Deal/Note/follow-up Task in HubSpot,
        3) always fall back to opening a pre-filled mailto: to the studio
-          inbox, so an enquiry is never silently lost.
-     Replace FORM_ENDPOINT with a real endpoint (Formspree, Netlify
-     Forms, a Django view, etc.) — see README-SEO.md. */
-  var FORM_ENDPOINT = '';
+          inbox if that call fails, so an enquiry is never silently lost. */
+  var FORM_ENDPOINT = '/api/hubspot-submit';
   var ENQUIRY_EMAIL = 'thehealthwellbeinghub@gmail.com';
+
+  function formDataToJson(form) {
+    var obj = {};
+    new FormData(form).forEach(function (value, key) { obj[key] = value; });
+    return obj;
+  }
 
   function buildMailto(form, subjectPrefix) {
     var data = new FormData(form);
@@ -160,10 +166,12 @@
       };
 
       if (FORM_ENDPOINT) {
+        var payload = formDataToJson(form);
+        payload.form_name = formName;
         fetch(FORM_ENDPOINT, {
           method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: new FormData(form)
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         }).then(function (res) {
           if (res.ok) { form.reset(); finish('server'); }
           else { window.location.href = buildMailto(form, formName === 'referral' ? 'NDIS Referral' : 'NDIS Enquiry'); finish('mailto'); }

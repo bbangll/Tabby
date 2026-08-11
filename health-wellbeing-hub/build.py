@@ -156,8 +156,8 @@ def clean_generated_dirs():
     """Remove previously generated page directories so renamed/removed
     pages don't leave stale files behind. Only touches known output dirs,
     never templates/, static/, build.py or content.py."""
-    keep = {"templates", "static", "build.py", "content.py", "README-SEO.md",
-            "robots.txt", "sitemap.xml", "index.html", ".gitignore"}
+    keep = {"templates", "static", "api", "build.py", "content.py", "README-SEO.md",
+            "robots.txt", "sitemap.xml", "index.html", ".gitignore", "vercel.json"}
     for entry in os.listdir(ROOT):
         if entry in keep or entry.startswith("."):
             continue
