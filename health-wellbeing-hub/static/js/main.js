@@ -1,0 +1,159 @@
+(function () {
+  'use strict';
+  document.documentElement.classList.add('js');
+  window.dataLayer = window.dataLayer || [];
+
+  /* ---- Mobile nav toggle ---- */
+  var navToggle = document.getElementById('nav-toggle');
+  var navMenu = document.getElementById('nav-menu');
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', function () {
+      var open = navMenu.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    });
+    navMenu.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        navMenu.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
+  /* ---- Audience tabs (progressive enhancement over always-visible panels) ---- */
+  var audTabs = document.querySelectorAll('.aud-tab');
+  if (audTabs.length) {
+    var firstPanel = document.querySelector('.aud-panel');
+    if (firstPanel) firstPanel.classList.add('active');
+    audTabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-target');
+        document.querySelectorAll('.aud-panel').forEach(function (p) { p.classList.remove('active'); });
+        document.querySelectorAll('.aud-tab').forEach(function (t) { t.classList.remove('active'); });
+        var panel = document.getElementById(id);
+        if (panel) panel.classList.add('active');
+        btn.classList.add('active');
+      });
+    });
+  }
+
+  /* ---- Scroll reveal ---- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if (revealEls.length && 'IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry, i) {
+        if (entry.isIntersecting) {
+          setTimeout(function () { entry.target.classList.add('visible'); }, i * 60);
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    revealEls.forEach(function (el) { obs.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('visible'); });
+  }
+
+  /* ---- Stat counters ---- */
+  function animateCounters() {
+    document.querySelectorAll('.stat-num[data-target]').forEach(function (el) {
+      var target = parseInt(el.getAttribute('data-target'), 10);
+      var current = 0;
+      var increment = target / 45;
+      var timer = setInterval(function () {
+        current += increment;
+        if (current >= target) { current = target; clearInterval(timer); }
+        el.textContent = Math.floor(current) + (target >= 20 ? '+' : '');
+      }, 35);
+    });
+  }
+  var statsEl = document.querySelector('.stats-band');
+  if (statsEl && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) animateCounters();
+    }, { threshold: 0.5 }).observe(statsEl);
+  }
+
+  /* ---- Conversion tracking ----
+     Every trackable element carries data-track="<event_name>" and an
+     optional data-track-location. Events land in window.dataLayer so a
+     GTM trigger (Trigger type: Custom Event, matching event name) can
+     forward them to GA4 and Google Ads without any code changes here. */
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-track]');
+    if (!el) return;
+    window.dataLayer.push({
+      event: el.getAttribute('data-track'),
+      link_location: el.getAttribute('data-track-location') || '',
+      link_url: el.getAttribute('href') || ''
+    });
+  });
+
+  /* ---- Enquiry / referral forms ----
+     No backend is wired up in this codebase yet. On submit we:
+       1) push an `enquiry_submitted` dataLayer event (GTM/GA4/Ads hook),
+       2) POST to FORM_ENDPOINT if one has been configured,
+       3) always fall back to opening a pre-filled mailto: to the studio
+          inbox, so an enquiry is never silently lost.
+     Replace FORM_ENDPOINT with a real endpoint (Formspree, Netlify
+     Forms, a Django view, etc.) — see README-SEO.md. */
+  var FORM_ENDPOINT = '';
+  var ENQUIRY_EMAIL = 'thehealthwellbeinghub@gmail.com';
+
+  function buildMailto(form, subjectPrefix) {
+    var data = new FormData(form);
+    var lines = [];
+    data.forEach(function (value, key) {
+      if (key === 'privacy_consent') return;
+      if (!value) return;
+      var label = key.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+      lines.push(label + ': ' + value);
+    });
+    var subject = encodeURIComponent(subjectPrefix + ' — ' + (data.get('name') || 'Website enquiry'));
+    var body = encodeURIComponent(lines.join('\n'));
+    return 'mailto:' + ENQUIRY_EMAIL + '?subject=' + subject + '&body=' + body;
+  }
+
+  document.querySelectorAll('form[data-form-name]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var status = form.querySelector('.form-status');
+      var submitBtn = form.querySelector('.form-submit');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+
+      var formName = form.getAttribute('data-form-name');
+      var eventName = formName === 'referral' ? 'referral_submitted' : 'enquiry_submitted';
+
+      var finish = function (delivered) {
+        window.dataLayer.push({ event: eventName, form_name: formName, delivery_method: delivered });
+        if (status) {
+          status.textContent = delivered === 'server'
+            ? "Thanks — your enquiry has been sent. We'll be in touch soon."
+            : "Opening your email app to send this enquiry to our team — if nothing opens, please call 0433 604 507.";
+          status.className = 'form-status ok';
+        }
+        if (submitBtn) submitBtn.disabled = false;
+      };
+
+      if (FORM_ENDPOINT) {
+        fetch(FORM_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: new FormData(form)
+        }).then(function (res) {
+          if (res.ok) { form.reset(); finish('server'); }
+          else { window.location.href = buildMailto(form, formName === 'referral' ? 'NDIS Referral' : 'NDIS Enquiry'); finish('mailto'); }
+        }).catch(function () {
+          window.location.href = buildMailto(form, formName === 'referral' ? 'NDIS Referral' : 'NDIS Enquiry');
+          finish('mailto');
+        });
+      } else {
+        window.location.href = buildMailto(form, formName === 'referral' ? 'NDIS Referral' : 'NDIS Enquiry');
+        finish('mailto');
+      }
+    });
+  });
+})();
