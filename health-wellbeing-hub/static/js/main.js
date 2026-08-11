@@ -144,6 +144,11 @@
 
       var finish = function (delivered) {
         window.dataLayer.push({ event: eventName, form_name: formName, delivery_method: delivered });
+        // GA4's recognised recommended-event name for a completed lead —
+        // pushed alongside the specific event above (not instead of it)
+        // so Google Ads' "import from GA4" conversion flow has a
+        // standard event to find without any extra GTM configuration.
+        window.dataLayer.push({ event: 'generate_lead', lead_type: formName });
         if (status) {
           status.textContent = delivered === 'server'
             ? "Thanks — your enquiry has been sent. We'll be in touch soon."
