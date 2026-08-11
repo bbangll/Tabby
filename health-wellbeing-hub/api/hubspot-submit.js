@@ -8,7 +8,7 @@
 // if the pipeline is ever rebuilt (e.g. when Pipeline B gets its own
 // slot and Pipeline A's stages get regenerated with new IDs).
 const NEW_ENQUIRY_STAGE_ID = '3607635399';
-const CLOSED_STAGE_IDS = new Set(['3607635405', '3607635406']); // Participant Onboarded, Lost / Not Suitable
+const CLOSED_STAGE_IDS = new Set(['3607504325', '3607504326']); // Participant Onboarded, Lost / Not Suitable
 const HUBSPOT_BASE = 'https://api.hubapi.com';
 
 async function hs(path, options = {}) {
