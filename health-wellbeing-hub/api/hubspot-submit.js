@@ -4,9 +4,11 @@
 // in HubSpot. HUBSPOT_TOKEN lives only as a server-side Vercel env var —
 // never sent to the browser, never committed to the repo.
 //
-// New-Enquiry stage ID is fixed to the one created for this pipeline;
-// update it if the pipeline is ever rebuilt.
+// Stage IDs are fixed to the ones created for this pipeline; update them
+// if the pipeline is ever rebuilt (e.g. when Pipeline B gets its own
+// slot and Pipeline A's stages get regenerated with new IDs).
 const NEW_ENQUIRY_STAGE_ID = '3607635399';
+const CLOSED_STAGE_IDS = new Set(['3607635405', '3607635406']); // Participant Onboarded, Lost / Not Suitable
 const HUBSPOT_BASE = 'https://api.hubapi.com';
 
 async function hs(path, options = {}) {
@@ -73,6 +75,25 @@ async function upsertContact({ name, email, phone }) {
     body: JSON.stringify({ properties }),
   });
   return created.id;
+}
+
+// A contact who already has an OPEN deal in the pipeline is continuing
+// the same journey, not starting a parallel one — reuse that deal rather
+// than opening a second one. A contact whose only deals are CLOSED
+// (onboarded or lost) gets a fresh deal, since that's a genuinely new
+// opportunity.
+async function findOpenDealForContact(contactId) {
+  const assoc = await hs(`/crm/v3/objects/contacts/${contactId}/associations/deals`);
+  const dealIds = (assoc.results || []).map((r) => r.id);
+  if (!dealIds.length) return null;
+
+  const deals = await Promise.all(
+    dealIds.map((id) =>
+      hs(`/crm/v3/objects/deals/${id}?properties=dealstage`).catch(() => null)
+    )
+  );
+  const open = deals.find((d) => d && !CLOSED_STAGE_IDS.has(d.properties.dealstage));
+  return open ? open.id : null;
 }
 
 async function associateDefault(fromType, fromId, toType, toId) {
@@ -184,15 +205,18 @@ module.exports = async (req, res) => {
       noteBody = buildEnquiryNote(f);
     }
 
-    dealId = await createDeal({ dealname: dealName, contactId });
+    const existingOpenDealId = await findOpenDealForContact(contactId);
+    const isReturning = !!existingOpenDealId;
+    dealId = existingOpenDealId || (await createDeal({ dealname: dealName, contactId }));
+
     await createNote({ body: noteBody, contactId, dealId });
     await createFollowUpTask({
-      subject: `Contact new ${formName === 'referral' ? 'referral' : 'enquiry'}: ${f.name || f.participant_name || 'lead'}`,
+      subject: `Contact ${isReturning ? 'returning' : 'new'} ${formName === 'referral' ? 'referral' : 'enquiry'}: ${f.name || f.participant_name || 'lead'}`,
       contactId,
       dealId,
     });
 
-    return res.status(200).json({ ok: true, contactId, dealId });
+    return res.status(200).json({ ok: true, contactId, dealId, isReturning });
   } catch (err) {
     console.error('hubspot-submit error:', err.message, err.data || '');
     return res.status(502).json({ ok: false, error: 'CRM submission failed' });
