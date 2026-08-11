@@ -114,14 +114,29 @@
   }
 
   document.querySelectorAll('form[data-form-name]').forEach(function (form) {
+    // Tracks whether this form has already produced a successful
+    // conversion, synchronously, so a rapid double-click (or a second
+    // submit fired while the first is still resolving) can never push a
+    // second enquiry_submitted/referral_submitted event or send a second
+    // mailto — one real enquiry must equal exactly one conversion.
+    form.dataset.hwSubmitted = 'false';
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (form.dataset.hwSubmitted === 'true') return;
+
       var status = form.querySelector('.form-status');
       var submitBtn = form.querySelector('.form-submit');
       if (!form.checkValidity()) {
         form.reportValidity();
         return;
       }
+
+      // Set before any async/navigation work starts — this is the guard,
+      // not submitBtn.disabled (which a mailto: "navigation" that never
+      // actually unloads the page would leave re-enabled almost
+      // instantly, reopening the double-submit window).
+      form.dataset.hwSubmitted = 'true';
       if (submitBtn) submitBtn.disabled = true;
 
       var formName = form.getAttribute('data-form-name');
@@ -135,7 +150,8 @@
             : "Opening your email app to send this enquiry to our team — if nothing opens, please call 0433 604 507.";
           status.className = 'form-status ok';
         }
-        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtn) submitBtn.textContent = 'Sent';
+        // submitBtn stays disabled: this form has already converted once.
       };
 
       if (FORM_ENDPOINT) {
