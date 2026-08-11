@@ -38,6 +38,7 @@ SITE = {
     "founder_name": "Kholoud Abdalla",
     "hours": "Mon–Fri 8:00am–5:00pm · Support available 7 days",
     "enquire_url": "/contact/",
+    "gtm_id": "GTM-NKMLMGDT",
     "year": datetime.date.today().year,
 }
 
