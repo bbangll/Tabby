@@ -26,18 +26,19 @@ or the Python source files).
 
 Requires Python 3 + Jinja2 (`pip install jinja2`).
 
-## Required manual configuration before/at launch
+## Tracking status (last updated during the pre-launch tracking audit)
 
-### 1. Google Tag Manager (GTM)
-Every page's `<head>` loads GTM with a placeholder container ID
-(`GTM_CONTAINER_ID` in `templates/base.html`). Create a real GTM
-container at tagmanager.google.com, then replace `GTM_CONTAINER_ID` in
-`templates/base.html` (both the `<script>` and `<noscript>` blocks) with
-your real ID (format `GTM-XXXXXXX`), and rebuild.
+### 1. Google Tag Manager (GTM) — ✅ done
+Real container `GTM-NKMLMGDT` is live in `templates/base.html`
+(`site.gtm_id` in `build.py`). Verified: the published container (fetched
+directly from googletagmanager.com) contains the real GA4 Measurement ID,
+and dataLayer events fire correctly for every tracked interaction.
 
-### 2. GA4 + Google Ads conversion tracking (configure inside GTM, not in code)
-The site pushes structured events to `window.dataLayer` for every
-trackable interaction (see `static/js/main.js`). Event names:
+### 2. GA4 — ✅ done
+Measurement ID `G-66FG6SCSL0`, configured entirely inside GTM (a "Google
+Tag" base tag + 5 "GA4 Event" tags), not hardcoded anywhere in this repo.
+Verified live in GA4 Realtime. The site pushes these to `window.dataLayer`
+for every trackable interaction (see `static/js/main.js`):
 
 | Event | Fires on |
 |---|---|
@@ -46,29 +47,36 @@ trackable interaction (see `static/js/main.js`). Event names:
 | `email_click` | any `mailto:` link click |
 | `enquiry_cta_click` | any "Make an enquiry" / "Get started" link click |
 | `referral_click` | any "Refer a participant" link click |
-| `enquiry_submitted` | successful enquiry form submit |
-| `referral_submitted` | successful referral form submit |
+| `enquiry_submitted` | successful enquiry form submit only (never on click/validation-fail) |
+| `referral_submitted` | successful referral form submit only |
+| `generate_lead` | pushed alongside enquiry/referral submit, with `lead_type` — not yet wired to a GTM trigger, reserved for a future Google Ads "import from GA4" conversion |
 
 Every trackable element also carries `data-track-location` (e.g.
-`nav`, `sticky_mobile_bar`, `service_hero`) so you can see which part of
-the site is driving conversions.
+`nav`, `sticky_mobile_bar`, `service_hero`) so GA4 can show which part of
+the site is driving conversions. None of these payloads ever include
+visitor-entered form data (name/phone/email/message) — verified by
+submitting the enquiry form with realistic PII and confirming the
+dataLayer payload only ever contains `event`/`form_name`/
+`delivery_method`/`lead_type`/`link_location`/`link_url`.
 
-In GTM: create a GA4 Configuration tag, then GA4 Event tags (or Google
-Ads Conversion tags) triggered on Custom Event = each event name above.
-This keeps no GA4 measurement ID or Google Ads conversion ID hardcoded
-in the codebase — it's all configured server-side in GTM, which is also
-easier for a non-developer to maintain going forward.
+GTM triggers are Custom Event triggers matching the event names above
+exactly (case-sensitive). GA4 Event tags map `enquiry_submitted` and
+`referral_submitted` to GA4's standard `generate_lead` event name.
 
-### 3. Google Search Console
-- Add the property for `https://www.thehealthwellbeinghub.com`.
-- Easiest verification method: use the same GTM container (Search
-  Console supports "Google Tag Manager" as a verification method
-  directly), or replace the placeholder in the
-  `<meta name="google-site-verification" ...>` tag in
-  `templates/base.html` with the code GSC gives you, then rebuild.
-- Submit `https://www.thehealthwellbeinghub.com/sitemap.xml`.
+### 3. Google Search Console — ✅ done
+Verified via DNS TXT record on a **Domain property** for
+`thehealthwellbeinghub.com` (covers both the apex and `www` automatically —
+DNS-level verification, not the HTML meta tag method, so there's nothing
+in the code to configure). Sitemap submitted.
 
-### 4. Enquiry & referral forms
+### 4. Google Ads conversion tracking — not started
+No Ads account/conversion actions exist yet. Once ads are running, create
+conversion actions in Google Ads and link them to the same GTM triggers
+above (or import directly from the GA4 `generate_lead`/`click_phone`/
+`click_whatsapp`/`click_email` events once GA4 has enough data) — no code
+changes needed, same pattern as GA4.
+
+### 5. Enquiry & referral forms
 Neither form has a backend in this codebase. On submit, `main.js`:
 1. Pushes the `enquiry_submitted` / `referral_submitted` dataLayer event.
 2. POSTs to `FORM_ENDPOINT` (in `static/js/main.js`) if one is configured.
@@ -80,7 +88,11 @@ Google Form via its formResponse endpoint, or a small server endpoint)
 and set `FORM_ENDPOINT` in `static/js/main.js`, then rebuild. This is a
 one-line change once you've picked a provider.
 
-### 5. Domain / canonical URL
+### 6. Domain / canonical URL
 All canonical URLs, Open Graph tags and JSON-LD assume
-`https://www.thehealthwellbeinghub.com`. If the real production domain
-differs, update `SITE["base_url"]` in `build.py` and rebuild.
+`https://www.thehealthwellbeinghub.com`. Both the apex and `www` are live
+on Vercel with valid SSL; page-route requests to the apex don't yet
+redirect to `www` (only static files do, e.g. `/robots.txt`) — a Vercel
+routing quirk with implicit `index.html` resolution taking priority over
+the `vercel.json` redirect. Fix via Vercel dashboard → Domains → set one
+domain to redirect to the other, rather than fighting `vercel.json` further.
