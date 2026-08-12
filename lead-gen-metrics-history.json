@@ -1,0 +1,10 @@
+{
+  "note": "Internal tracking log for the Lead-Gen Command Centre dashboard. Not part of the deployed website. GA4 metrics have real daily history since launch; CRM metrics start 2026-08-12 (the date the referral contact list was rebuilt) — earlier CRM data is a different, unrelated dataset and isn't included to avoid a misleading trend line.",
+  "ga4_daily": [
+    { "date": "2026-08-11", "sessions": 10, "activeUsers": 6, "engagedSessions": 6 },
+    { "date": "2026-08-12", "sessions": 3, "activeUsers": 2, "engagedSessions": 0 }
+  ],
+  "crm_snapshots": [
+    { "date": "2026-08-12", "contacts": 23, "companies": 17, "openDeals": 0 }
+  ]
+}
