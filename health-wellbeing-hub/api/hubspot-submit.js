@@ -5,8 +5,10 @@
 // never sent to the browser, never committed to the repo.
 //
 // Stage IDs are fixed to the ones created for this pipeline; update them
-// if the pipeline is ever rebuilt (e.g. when Pipeline B gets its own
-// slot and Pipeline A's stages get regenerated with new IDs).
+// if Pipeline A is ever rebuilt and its stage IDs regenerate. This file
+// only ever creates deals in Pipeline A — Pipeline B (Referral Partner
+// Pipeline) is managed separately, this file just links a new lead's
+// deal to its referrer's contact when the referrer is already tracked.
 const NEW_ENQUIRY_STAGE_ID = '3607635399';
 const CLOSED_STAGE_IDS = new Set(['3607504325', '3607504326']); // Participant Onboarded, Lost / Not Suitable
 const HUBSPOT_BASE = 'https://api.hubapi.com';
@@ -190,6 +192,7 @@ module.exports = async (req, res) => {
 
     let contactId, dealId, noteBody, dealName;
 
+    let referrerContactId = null;
     if (formName === 'referral') {
       const contact = f.participant_contact || '';
       contactId = await upsertContact({
@@ -199,6 +202,15 @@ module.exports = async (req, res) => {
       });
       dealName = `${f.participant_name || 'Referral'} — referred by ${f.referrer_name || 'unknown'}`;
       noteBody = buildReferralNote(f);
+
+      // If the referrer's email matches an existing contact (e.g. a tracked
+      // referral partner), link this new lead's deal to them too, so
+      // "how many leads has this partner sent us" is a real, countable
+      // association instead of a guess.
+      if (looksLikeEmail(f.referrer_email)) {
+        const referrer = await findContactByEmail(f.referrer_email).catch(() => null);
+        if (referrer) referrerContactId = referrer.id;
+      }
     } else {
       contactId = await upsertContact({ name: f.name, email: f.email, phone: f.phone });
       dealName = `${f.name || 'Website enquiry'} — ${f.service_needed || 'General enquiry'}`;
@@ -208,6 +220,12 @@ module.exports = async (req, res) => {
     const existingOpenDealId = await findOpenDealForContact(contactId);
     const isReturning = !!existingOpenDealId;
     dealId = existingOpenDealId || (await createDeal({ dealname: dealName, contactId }));
+
+    if (referrerContactId) {
+      await associateDefault('deals', dealId, 'contacts', referrerContactId).catch((err) => {
+        console.error('referrer association failed:', err.message);
+      });
+    }
 
     await createNote({ body: noteBody, contactId, dealId });
     await createFollowUpTask({
