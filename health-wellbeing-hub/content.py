@@ -486,6 +486,13 @@ HOME_FAQS = [
     {"q": "Are you NDIS registered?", "a": "Yes — fully registered NDIS provider. Registration number: 4050045262. We meet all NDIS Practice Standards and are fully insured and compliant."},
 ]
 
+DIRECTORY_FAQS = [
+    {"q": "What is an NDIS registered provider?", "a": "An NDIS registered provider has been independently audited against the NDIS Practice Standards and approved by the NDIS Quality and Safeguards Commission to deliver supports. Registration is required if a participant's plan is agency managed, and is one signal (not the only one) that a provider meets consistent quality and safety benchmarks."},
+    {"q": "Do I have to use an NDIS registered provider?", "a": "It depends on how your plan is managed. Agency managed funds can only be used with registered providers. Plan managed and self managed funds can generally be used with both registered and unregistered providers, giving you more choice — always check your plan's management type if you're unsure."},
+    {"q": "How do I choose the right allied health or NDIS provider?", "a": "Check their registration status and specific service categories, ask about experience with your specific needs, confirm availability and wait times in your area, and read reviews where available. It's also reasonable to ask providers directly about their approach before committing."},
+    {"q": "Is this directory free to use?", "a": "Yes — searching and filtering the directory is completely free, with no obligation to use any listed provider."},
+]
+
 TESTIMONIALS = [
     {
         "text": "Highly recommend The Health Wellbeing Hub. The staff are very friendly, supportive, and genuinely care about the people they help. They have great morals and always prioritise people in need. You can tell they are passionate about making a positive difference in the community.",

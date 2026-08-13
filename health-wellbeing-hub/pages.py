@@ -149,15 +149,30 @@ def build(render, SITE, C):
     path = "/provider-directory/"
     render(
         "directory.html", path,
-        title="Allied Health & NDIS Provider Directory | The Health & Well-being Hub",
-        meta_description="Search allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland. Filter by location, state and NDIS registration.",
+        title="Allied Health & NDIS Provider Directory Logan & Brisbane | The Health & Well-being Hub",
+        meta_description="Search allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland. Filter by location, state, service type and NDIS registration.",
+        og_title="Allied Health & NDIS Provider Directory | The Health & Well-being Hub",
+        og_description="A searchable directory of allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland.",
         breadcrumbs=crumbs(("Provider Directory", path)),
+        directory_faqs=C.DIRECTORY_FAQS,
         schema_json=S.graph(
-            S.webpage_node(SITE, path, "Allied Health & NDIS Provider Directory", "Searchable directory of allied health professionals and NDIS service providers in South East Queensland."),
+            S.webpage_node(
+                SITE, path,
+                "Allied Health & NDIS Provider Directory",
+                "Searchable directory of allied health professionals and NDIS service providers in South East Queensland.",
+                page_type="CollectionPage",
+            ),
             S.breadcrumb_node(SITE, path, crumbs(("Provider Directory", path))),
+            S.faqpage_node(SITE, path, C.DIRECTORY_FAQS),
         ),
         priority="0.7",
         changefreq="weekly",
+        # Listings are still fictional placeholder data (see templates/directory.html) —
+        # keep this out of search results and the sitemap until real, verified
+        # providers replace the demo rows, so Google never indexes fabricated
+        # businesses under this domain. Remove both once the data is real.
+        robots="noindex, follow",
+        sitemap=False,
     )
 
     # ------------------------------------------------------------------

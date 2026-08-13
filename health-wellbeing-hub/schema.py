@@ -70,9 +70,9 @@ def website_graph(site):
     }
 
 
-def webpage_node(site, path, name, description):
+def webpage_node(site, path, name, description, page_type="WebPage"):
     return {
-        "@type": "WebPage",
+        "@type": page_type,
         "@id": site["base_url"] + path + "#webpage",
         "url": site["base_url"] + path,
         "name": name,

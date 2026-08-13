@@ -172,6 +172,31 @@
   <div class="dir-grid" id="dirProviderGrid"></div>
   <div id="dirLoadSentinel" class="dir-scroll-sentinel" aria-hidden="true"></div>
 </div>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="prose">
+      <h2>Finding the right NDIS or allied health provider</h2>
+      <p>Choosing a provider is a personal decision, and the right fit depends on the type of support you need, your location, and how your NDIS plan is managed. This directory is built to make that search easier — filter by location, state, service type or NDIS registration status to find providers relevant to you.</p>
+      <p>Providers listed here span the full range of NDIS registration groups, including Support Coordination, Physiotherapy, Speech Pathology, Psychology, Behaviour Support, Occupational Therapy, Community Nursing Care and Community Participation, among others.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section bg-purple-tint">
+  <div class="section-inner">
+    <div class="section-label">Common questions</div>
+    <h2 class="section-title">Provider directory FAQs</h2>
+    <div class="faq-grid single" style="margin-top:44px;max-width:800px">
+      {% for f in directory_faqs %}
+      <details class="faq-item">
+        <summary>{{ f.q }} {{ icon('chevron-down') }}</summary>
+        <div class="faq-a">{{ f.a }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 {% endblock %}
 
 {% block extra_scripts %}

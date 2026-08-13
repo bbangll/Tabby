@@ -82,9 +82,12 @@ env.globals["blog_posts"] = C.BLOG_POSTS
 env.globals["current_year"] = SITE["year"]
 
 
-def render(template_name, out_path, changefreq="monthly", priority="0.6", lastmod=None, **ctx):
+def render(template_name, out_path, changefreq="monthly", priority="0.6", lastmod=None, sitemap=True, **ctx):
     """Render template_name with ctx (plus is_active(prefix) bound to
-    out_path) to out_path/index.html and register it for the sitemap."""
+    out_path) to out_path/index.html and register it for the sitemap.
+    Pass sitemap=False for pages that are also marked noindex (e.g. while
+    carrying placeholder content) so Search Console doesn't flag a
+    submitted-but-noindexed URL."""
 
     def is_active(prefix):
         return out_path == prefix or (prefix != "/" and out_path.startswith(prefix))
@@ -104,9 +107,10 @@ def render(template_name, out_path, changefreq="monthly", priority="0.6", lastmo
     with open(dest_file, "w", encoding="utf-8") as f:
         f.write(html)
 
-    PAGE_REGISTRY.append(
-        {"path": out_path, "changefreq": changefreq, "priority": priority, "lastmod": lastmod or LASTMOD}
-    )
+    if sitemap:
+        PAGE_REGISTRY.append(
+            {"path": out_path, "changefreq": changefreq, "priority": priority, "lastmod": lastmod or LASTMOD}
+        )
     print("wrote", dest_file)
 
 
