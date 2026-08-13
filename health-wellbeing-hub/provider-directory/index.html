@@ -180,6 +180,7 @@
   }
   .dir-demo-banner strong{color:#FFD97A;}
   .dir-loading{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--tm);font-size:14px;}
+  .dir-scroll-sentinel{height:1px;}
 
   @media (max-width:640px){
     .dir-search-bar{flex-direction:column;border-radius:var(--rl);padding:14px;}
@@ -516,6 +517,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <div class="dir-main-wrap">
   <div class="dir-grid" id="dirProviderGrid"></div>
+  <div id="dirLoadSentinel" class="dir-scroll-sentinel" aria-hidden="true"></div>
 </div>
 </main>
 
@@ -581,7 +583,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var loaded = false;
   var loadFailed = false;
 
+  var PAGE_SIZE = 12;
+  var currentFiltered = [];
+  var renderedCount = 0;
+
   var grid = document.getElementById('dirProviderGrid');
+  var sentinel = document.getElementById('dirLoadSentinel');
   var resultsCount = document.getElementById('dirResultsCount');
   var searchInput = document.getElementById('dirSearchInput');
   var locationFilter = document.getElementById('dirLocationFilter');
@@ -601,10 +608,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
   }
 
-  fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
-  })
-    .then(function (res) { if (!res.ok) throw new Error('Supabase request failed: ' + res.status); return res.json(); })
+  // Fetches every row regardless of table size — pages through in batches of
+  // 1000 via PostgREST's Range header rather than trusting a single request
+  // to return everything, since Supabase caps unranged requests at its
+  // configured max-rows (commonly 1000).
+  function fetchAllProviders() {
+    var BATCH = 1000;
+    var all = [];
+    function fetchPage(offset) {
+      return fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+          Range: offset + '-' + (offset + BATCH - 1)
+        }
+      }).then(function (res) {
+        if (!res.ok && res.status !== 206) throw new Error('Supabase request failed: ' + res.status);
+        return res.json();
+      }).then(function (rows) {
+        all = all.concat(rows);
+        return rows.length === BATCH ? fetchPage(offset + BATCH) : all;
+      });
+    }
+    return fetchPage(0);
+  }
+
+  fetchAllProviders()
     .then(function (rows) {
       PROVIDERS = rows.map(function (row) {
         return {
@@ -724,6 +753,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   window.dirToggleExpand = dirToggleExpand;
 
+  function updateResultsCountLabel() {
+    if (renderedCount >= currentFiltered.length) {
+      resultsCount.innerHTML = '<strong>' + currentFiltered.length + '</strong> provider' + (currentFiltered.length === 1 ? '' : 's') + ' found';
+    } else {
+      resultsCount.innerHTML = 'Showing <strong>' + renderedCount + '</strong> of <strong>' + currentFiltered.length + '</strong> providers — scroll for more';
+    }
+  }
+
+  function appendNextBatch() {
+    var start = renderedCount;
+    var end = Math.min(start + PAGE_SIZE, currentFiltered.length);
+    var html = '';
+    for (var i = start; i < end; i++) { html += renderCard(currentFiltered[i], i); }
+    grid.insertAdjacentHTML('beforeend', html);
+    renderedCount = end;
+    updateResultsCountLabel();
+    sentinel.style.display = renderedCount >= currentFiltered.length ? 'none' : '';
+  }
+
+  var scrollObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting && renderedCount < currentFiltered.length) {
+        appendNextBatch();
+      }
+    });
+  }, { rootMargin: '300px' });
+  scrollObserver.observe(sentinel);
+
   function applyFilters() {
     var q = searchInput.value.trim().toLowerCase();
     var loc = locationFilter.value;
@@ -731,7 +788,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var service = serviceFilter.value;
     var ndisOnly = ndisFilter.checked;
 
-    var filtered = PROVIDERS.filter(function (p) {
+    currentFiltered = PROVIDERS.filter(function (p) {
       if (q && !(p.name.toLowerCase().indexOf(q) > -1 || p.service.toLowerCase().indexOf(q) > -1)) return false;
       if (loc && p.suburb !== loc) return false;
       if (state && p.state !== state) return false;
@@ -739,9 +796,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if (ndisOnly && !p.ndis) return false;
       return true;
     });
+    renderedCount = 0;
 
     if (PROVIDERS.length === 0) {
       resultsCount.innerHTML = '';
+      sentinel.style.display = 'none';
       grid.innerHTML = loadFailed
         ? '<div class="dir-empty"><div class="big">⚠️</div>' +
           '<strong>Couldn’t load the directory right now</strong>' +
@@ -756,13 +815,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return;
     }
 
-    resultsCount.innerHTML = '<strong>' + filtered.length + '</strong> provider' + (filtered.length === 1 ? '' : 's') + ' found';
-
-    if (filtered.length === 0) {
+    if (currentFiltered.length === 0) {
+      sentinel.style.display = 'none';
       grid.innerHTML = '<div class="dir-empty"><div class="big">🔍</div><strong>No providers match those filters</strong><p>Try broadening your search or clearing a filter.</p></div>';
+      resultsCount.innerHTML = '';
       return;
     }
-    grid.innerHTML = filtered.map(renderCard).join('');
+
+    grid.innerHTML = '';
+    appendNextBatch();
   }
 
   searchInput.addEventListener('input', applyFilters);
