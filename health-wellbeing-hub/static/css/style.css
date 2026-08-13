@@ -44,7 +44,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .topbar-cta:hover{background:var(--pl)}
 
 /* ── NAV ── */
-nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.98);backdrop-filter:blur(16px);border-bottom:1px solid var(--b);min-height:72px;display:flex;align-items:center;padding:0 32px;justify-content:space-between;box-shadow:var(--sh)}
+nav{position:sticky;top:0;z-index:600;background:rgba(255,255,255,.98);backdrop-filter:blur(16px);border-bottom:1px solid var(--b);min-height:72px;display:flex;align-items:center;padding:0 32px;justify-content:space-between;box-shadow:var(--sh)}
 .nav-logo{display:flex;align-items:center;gap:12px}
 .nav-logo-mark{width:42px;height:42px;border-radius:50%;background:var(--pt);border:2px solid var(--p);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .nav-logo-mark .icon{font-size:20px;color:var(--p)}
