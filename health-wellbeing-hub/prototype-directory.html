@@ -97,32 +97,48 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px;}
 
   .card{
-    background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:20px;
-    box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;
+    background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:22px;
+    box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;
   }
   .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-  .card h3{font-family:var(--fd);font-weight:700;font-size:17px;color:var(--n);margin:0;line-height:1.3;}
+  .card h3{font-family:var(--fd);font-weight:700;font-size:18px;color:var(--t);margin:0;line-height:1.3;}
+  .card-region{font-family:var(--fd);font-style:italic;font-size:14px;color:var(--tm);margin:2px 0 4px;}
+  .locate-btn{
+    flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--b);background:var(--ow);
+    display:flex;align-items:center;justify-content:center;color:var(--p);cursor:default;
+  }
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
   .service-tag{
     display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:999px;margin-top:6px;
+    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:999px;
   }
   .ndis-badge{
     display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
     background:var(--gl);color:var(--g);padding:3px 9px;border-radius:999px;flex:none;white-space:nowrap;
   }
   .ndis-badge.not-approved{background:#F3EFF6;color:#8a8394;}
-  .rating-row{display:flex;align-items:center;gap:6px;}
+  .rating-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
   .stars{color:var(--star);font-size:14px;letter-spacing:1px;}
   .rating-num{font-weight:700;font-size:13.5px;color:var(--t);}
   .review-count{font-size:12.5px;color:var(--tm);}
-  .card-loc{font-size:13.5px;color:var(--tm);display:flex;align-items:center;gap:5px;}
-  .card-contact{
-    display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--t);
-    border-top:1px solid var(--b);padding-top:10px;margin-top:2px;
+
+  .info-list{display:flex;flex-direction:column;gap:9px;padding-top:6px;border-top:1px solid var(--b);margin-top:4px;}
+  .info-row{display:flex;gap:11px;font-size:13.5px;color:var(--t);}
+  .info-row .ic{flex:none;width:18px;height:18px;color:var(--p);margin-top:1px;}
+  .info-row .lines{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .info-row a{color:var(--t);text-decoration:none;}
+  .info-row a:hover{color:var(--p);text-decoration:underline;}
+  .info-row .truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;}
+  .info-row .muted-label{color:var(--tm);}
+
+  .reg-groups{font-size:13.5px;color:var(--t);}
+  .reg-groups .lbl{color:var(--tm);}
+  .reg-groups .show-toggle{
+    color:var(--p);font-weight:700;background:none;border:none;cursor:pointer;font-size:13px;
+    padding:0;margin-left:4px;text-decoration:underline;text-underline-offset:2px;font-family:var(--fb);
   }
-  .card-contact a{color:var(--p);text-decoration:none;font-weight:600;}
-  .card-contact a:hover{text-decoration:underline;}
-  .card-desc{font-size:13px;color:var(--tm);line-height:1.5;}
+  .status-line{font-size:13px;color:var(--tm);padding-top:2px;}
+  .status-line .dot-active{color:var(--g);font-weight:700;}
 
   .no-results{
     text-align:center;padding:60px 20px;color:var(--tm);grid-column:1/-1;
@@ -192,22 +208,28 @@
 </main>
 
 <script>
+  var STD_HOURS = ["Monday: 9:00AM-5:00PM","Tuesday: 9:00AM-5:00PM","Wednesday: 9:00AM-5:00PM","Thursday: 9:00AM-5:00PM","Friday: 9:00AM-5:00PM"];
+  var EARLY_HOURS = ["Monday: 8:30AM-4:30PM","Tuesday: 8:30AM-4:30PM","Wednesday: 8:30AM-4:30PM","Thursday: 8:30AM-4:30PM","Friday: 8:30AM-4:30PM"];
+  var SHORT_HOURS = ["Monday: 9:00AM-4:00PM","Tuesday: 9:00AM-4:00PM","Wednesday: 9:00AM-4:00PM","Thursday: 9:00AM-4:00PM","Friday: 9:00AM-4:00PM"];
+  var EXT_HOURS = ["Monday: 8:00AM-6:00PM","Tuesday: 8:00AM-6:00PM","Wednesday: 8:00AM-6:00PM","Thursday: 8:00AM-6:00PM","Friday: 8:00AM-6:00PM"];
+  var SAT_HOURS = STD_HOURS.concat(["Saturday: 9:00AM-1:00PM"]);
+
   var PROVIDERS = [
-    { name: "Riverside Occupational Therapy", service: "Occupational Therapy", suburb: "Logan Central", state: "QLD", ndis: true, rating: 4.8, reviews: 62, phone: "07 3xxx xxxx", email: "hello@example.com", desc: "Paediatric and adult OT, home modifications, sensory assessments." },
-    { name: "Bright Path Physiotherapy", service: "Physiotherapy", suburb: "Springwood", state: "QLD", ndis: true, rating: 4.6, reviews: 41, phone: "07 3xxx xxxx", email: "info@example.com", desc: "Mobility, rehabilitation and NDIS-funded physio programs." },
-    { name: "Harbourside Speech & Language", service: "Speech Pathology", suburb: "Brisbane City", state: "QLD", ndis: true, rating: 4.9, reviews: 88, phone: "07 3xxx xxxx", email: "contact@example.com", desc: "Multilingual speech pathology for children and adults." },
-    { name: "Clearview Psychology Group", service: "Psychology", suburb: "Sunnybank", state: "QLD", ndis: true, rating: 4.7, reviews: 55, phone: "07 3xxx xxxx", email: "team@example.com", desc: "NDIS behaviour support and psychological assessments." },
-    { name: "Metro Plan Management Co", service: "Plan Management", suburb: "Beenleigh", state: "QLD", ndis: true, rating: 4.4, reviews: 29, phone: "07 3xxx xxxx", email: "admin@example.com", desc: "Fast NDIS plan management with a dedicated case contact." },
-    { name: "Horizon Support Coordination", service: "Support Coordination", suburb: "Logan Central", state: "QLD", ndis: true, rating: 4.5, reviews: 37, phone: "07 3xxx xxxx", email: "support@example.com", desc: "Specialist and level-2 support coordination across SEQ." },
-    { name: "Evergreen Disability Services", service: "Community Participation", suburb: "Slacks Creek", state: "QLD", ndis: true, rating: 4.3, reviews: 22, phone: "07 3xxx xxxx", email: "hi@example.com", desc: "Group and 1:1 community access programs." },
-    { name: "TrueNorth Psychology", service: "Psychology", suburb: "Gold Coast", state: "QLD", ndis: false, rating: 4.6, reviews: 74, phone: "07 5xxx xxxx", email: "reception@example.com", desc: "General and NDIS-adjacent psychology services." },
-    { name: "Willow Tree Therapy Services", service: "Occupational Therapy", suburb: "Ipswich", state: "QLD", ndis: true, rating: 4.2, reviews: 18, phone: "07 3xxx xxxx", email: "care@example.com", desc: "Home-based OT for participants across Ipswich region." },
-    { name: "Pinnacle Allied Health", service: "Physiotherapy", suburb: "Upper Mount Gravatt", state: "QLD", ndis: true, rating: 4.9, reviews: 103, phone: "07 3xxx xxxx", email: "book@example.com", desc: "Multi-disciplinary allied health clinic, NDIS registered." },
-    { name: "Fresh Start OT Services", service: "Occupational Therapy", suburb: "Fairfield", state: "QLD", ndis: false, rating: 4.0, reviews: 9, phone: "07 3xxx xxxx", email: "enquiries@example.com", desc: "Sole-practitioner OT, currently building NDIS registration." },
-    { name: "Community Care Nursing QLD", service: "Community Nursing", suburb: "Brendale", state: "QLD", ndis: true, rating: 4.7, reviews: 46, phone: "07 3xxx xxxx", email: "nursing@example.com", desc: "In-home nursing and complex care support." },
-    { name: "Bayside Behaviour Support", service: "Behaviour Support", suburb: "Cleveland", state: "QLD", ndis: true, rating: 4.5, reviews: 31, phone: "07 3xxx xxxx", email: "info@example.com", desc: "Positive behaviour support plans, specialist practitioners." },
-    { name: "Golden Gate Support Coordination", service: "Support Coordination", suburb: "Sydney", state: "NSW", ndis: true, rating: 4.3, reviews: 27, phone: "02 9xxx xxxx", email: "hello@example.com", desc: "Cross-border support coordination for interstate participants." },
-    { name: "Southern Cross Speech Pathology", service: "Speech Pathology", suburb: "Melbourne", state: "VIC", ndis: true, rating: 4.6, reviews: 52, phone: "03 9xxx xxxx", email: "team@example.com", desc: "Telehealth speech pathology available nationally." }
+    { name: "Riverside Occupational Therapy", service: "Occupational Therapy", suburb: "Logan Central", state: "QLD", postcode: "4114", ndis: true, rating: 4.8, reviews: 62, phone: "07 3001 1001", email: "hello@riversideot.example.com", website: "www.riversideot.example.com", abn: "51 000 000 011", hours: STD_HOURS, profession: "Occupational Therapist", regGroups: ["Therapeutic Supports","Development of Daily Living and Life Skills","Assistive Products for Household Tasks"], status: "Outlet / Active", desc: "Paediatric and adult OT, home modifications, sensory assessments." },
+    { name: "Bright Path Physiotherapy", service: "Physiotherapy", suburb: "Springwood", state: "QLD", postcode: "4127", ndis: true, rating: 4.6, reviews: 41, phone: "07 3001 1002", email: "info@brightpathphysio.example.com", website: "www.brightpathphysio.example.com", abn: "51 000 000 012", hours: EARLY_HOURS, profession: "Physiotherapist", regGroups: ["Physiotherapy","Therapeutic Supports"], status: "Outlet / Active", desc: "Mobility, rehabilitation and NDIS-funded physio programs." },
+    { name: "Harbourside Speech & Language", service: "Speech Pathology", suburb: "Brisbane City", state: "QLD", postcode: "4000", ndis: true, rating: 4.9, reviews: 88, phone: "07 3001 1003", email: "contact@harboursidespeech.example.com", website: "www.harboursidespeech.example.com", abn: "51 000 000 013", hours: STD_HOURS, profession: "Speech Pathologist", regGroups: ["Speech Pathology","Therapeutic Supports","Early Childhood Intervention"], status: "Outlet / Active", desc: "Multilingual speech pathology for children and adults." },
+    { name: "Clearview Psychology Group", service: "Psychology", suburb: "Sunnybank", state: "QLD", postcode: "4109", ndis: true, rating: 4.7, reviews: 55, phone: "07 3001 1004", email: "team@clearviewpsych.example.com", website: "www.clearviewpsych.example.com", abn: "51 000 000 014", hours: STD_HOURS, profession: "Psychologist", regGroups: ["Behaviour Support","Psychology"], status: "Outlet / Active", desc: "NDIS behaviour support and psychological assessments." },
+    { name: "Metro Plan Management Co", service: "Plan Management", suburb: "Beenleigh", state: "QLD", postcode: "4207", ndis: true, rating: 4.4, reviews: 29, phone: "07 3001 1005", email: "admin@metroplanmgmt.example.com", website: "www.metroplanmgmt.example.com", abn: "51 000 000 015", hours: STD_HOURS, profession: "Plan Manager", regGroups: ["Management of Funding for Supports"], status: "Outlet / Active", desc: "Fast NDIS plan management with a dedicated case contact." },
+    { name: "Horizon Support Coordination", service: "Support Coordination", suburb: "Logan Central", state: "QLD", postcode: "4114", ndis: true, rating: 4.5, reviews: 37, phone: "07 3001 1006", email: "support@horizonsupport.example.com", website: "www.horizonsupport.example.com", abn: "51 000 000 016", hours: STD_HOURS, profession: "Support Coordinator", regGroups: ["Support Coordination","Specialised Support Coordination"], status: "Outlet / Active", desc: "Specialist and level-2 support coordination across SEQ." },
+    { name: "Evergreen Disability Services", service: "Community Participation", suburb: "Slacks Creek", state: "QLD", postcode: "4127", ndis: true, rating: 4.3, reviews: 22, phone: "07 3001 1007", email: "hi@evergreends.example.com", website: "www.evergreends.example.com", abn: "51 000 000 017", hours: STD_HOURS, profession: "Community Support Worker", regGroups: ["Group and Centre Based Activities","Participation in Community, Social and Civic Activities","Innovative Community Participation"], status: "Outlet / Active", desc: "Group and 1:1 community access programs." },
+    { name: "TrueNorth Psychology", service: "Psychology", suburb: "Gold Coast", state: "QLD", postcode: "4217", ndis: false, rating: 4.6, reviews: 74, phone: "07 5001 2001", email: "reception@truenorthpsych.example.com", website: "www.truenorthpsych.example.com", abn: "51 000 000 018", hours: STD_HOURS, profession: "Psychologist", regGroups: [], status: "Not NDIS Registered", desc: "General and NDIS-adjacent psychology services." },
+    { name: "Willow Tree Therapy Services", service: "Occupational Therapy", suburb: "Ipswich", state: "QLD", postcode: "4305", ndis: true, rating: 4.2, reviews: 18, phone: "07 3001 1008", email: "care@willowtreetherapy.example.com", website: "www.willowtreetherapy.example.com", abn: "51 000 000 019", hours: SHORT_HOURS, profession: "Occupational Therapist", regGroups: ["Therapeutic Supports","Assistance with Daily Life"], status: "Outlet / Active", desc: "Home-based OT for participants across Ipswich region." },
+    { name: "Pinnacle Allied Health", service: "Physiotherapy", suburb: "Upper Mount Gravatt", state: "QLD", postcode: "4122", ndis: true, rating: 4.9, reviews: 103, phone: "07 3001 1009", email: "book@pinnacleah.example.com", website: "www.pinnacleah.example.com", abn: "51 000 000 020", hours: SAT_HOURS, profession: "Physiotherapist", regGroups: ["Physiotherapy","Therapeutic Supports","Assistive Equipment for Recreation","Community Nursing Care"], status: "Outlet / Active", desc: "Multi-disciplinary allied health clinic, NDIS registered." },
+    { name: "Fresh Start OT Services", service: "Occupational Therapy", suburb: "Fairfield", state: "QLD", postcode: "4103", ndis: false, rating: 4.0, reviews: 9, phone: "07 3001 1010", email: "enquiries@freshstartot.example.com", website: "www.freshstartot.example.com", abn: "51 000 000 021", hours: STD_HOURS, profession: "Occupational Therapist", regGroups: [], status: "Not NDIS Registered", desc: "Sole-practitioner OT, currently building NDIS registration." },
+    { name: "Community Care Nursing QLD", service: "Community Nursing", suburb: "Brendale", state: "QLD", postcode: "4500", ndis: true, rating: 4.7, reviews: 46, phone: "07 3001 1011", email: "nursing@communitycarenursing.example.com", website: "www.communitycarenursing.example.com", abn: "51 000 000 022", hours: EXT_HOURS, profession: "Registered Nurse", regGroups: ["Community Nursing Care","Daily Personal Activities"], status: "Outlet / Active", desc: "In-home nursing and complex care support." },
+    { name: "Bayside Behaviour Support", service: "Behaviour Support", suburb: "Cleveland", state: "QLD", postcode: "4163", ndis: true, rating: 4.5, reviews: 31, phone: "07 3001 1012", email: "info@baysidebehaviour.example.com", website: "www.baysidebehaviour.example.com", abn: "51 000 000 023", hours: STD_HOURS, profession: "Behaviour Support Practitioner", regGroups: ["Behaviour Support","Development of Daily Living and Life Skills"], status: "Outlet / Active", desc: "Positive behaviour support plans, specialist practitioners." },
+    { name: "Golden Gate Support Coordination", service: "Support Coordination", suburb: "Sydney", state: "NSW", postcode: "2000", ndis: true, rating: 4.3, reviews: 27, phone: "02 9001 3001", email: "hello@goldengatesupport.example.com", website: "www.goldengatesupport.example.com", abn: "51 000 000 024", hours: STD_HOURS, profession: "Support Coordinator", regGroups: ["Support Coordination"], status: "Outlet / Active", desc: "Cross-border support coordination for interstate participants." },
+    { name: "Southern Cross Speech Pathology", service: "Speech Pathology", suburb: "Melbourne", state: "VIC", postcode: "3000", ndis: true, rating: 4.6, reviews: 52, phone: "03 9001 4001", email: "team@southerncrossspeech.example.com", website: "www.southerncrossspeech.example.com", abn: "51 000 000 025", hours: STD_HOURS, profession: "Speech Pathologist", regGroups: ["Speech Pathology","Early Childhood Intervention"], status: "Outlet / Active", desc: "Telehealth speech pathology available nationally." }
   ];
 
   var grid = document.getElementById('providerGrid');
@@ -236,22 +258,71 @@
     return '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
   }
 
-  function renderCard(p) {
+  var ICONS = {
+    pin: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    phone: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.65 2.65a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.43-1.42a2 2 0 0 1 2.11-.45c.86.31 1.75.53 2.65.65A2 2 0 0 1 22 16.92Z"/></svg>',
+    mail: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+    link: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    bank: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 21 7 3 7"/></svg>',
+    clock: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    briefcase: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>'
+  };
+
+  function renderRegGroups(groups, idx) {
+    if (!groups.length) return '<div class="reg-groups"><span class="lbl">Registration Group:</span> None</div>';
+    var shortList = groups.slice(0, 1).join(', ') + (groups.length > 1 ? '…' : '');
+    var fullList = groups.join(', ');
+    var id = 'reg-' + idx;
+    if (groups.length <= 1) {
+      return '<div class="reg-groups"><span class="lbl">Registration Group:</span><br>' + fullList + '</div>';
+    }
+    return (
+      '<div class="reg-groups">' +
+        '<span class="lbl">Registration Group:</span><br>' +
+        '<span id="' + id + '-short">' + shortList + '<button class="show-toggle" onclick="toggleReg(' + idx + ')">show all</button></span>' +
+        '<span id="' + id + '-full" style="display:none;">' + fullList + ' <button class="show-toggle" onclick="toggleReg(' + idx + ')">show less</button></span>' +
+      '</div>'
+    );
+  }
+
+  function toggleReg(idx) {
+    var short = document.getElementById('reg-' + idx + '-short');
+    var full = document.getElementById('reg-' + idx + '-full');
+    var showingFull = full.style.display !== 'none';
+    short.style.display = showingFull ? '' : 'none';
+    full.style.display = showingFull ? 'none' : '';
+  }
+
+  function renderCard(p, idx) {
     var badge = p.ndis
       ? '<span class="ndis-badge">✓ NDIS Approved</span>'
       : '<span class="ndis-badge not-approved">Not NDIS Registered</span>';
+
+    var hoursHtml = p.hours.map(function (h) { return h; }).join('<br>');
+
     return (
       '<div class="card">' +
         '<div class="card-top">' +
-          '<div><h3>' + p.name + '</h3><span class="service-tag">' + p.service + '</span></div>' +
-          badge +
+          '<div><h3>' + p.name + '</h3><div class="card-region">' + p.suburb + '</div></div>' +
+          '<span class="locate-btn" title="View on map">' + ICONS.target + '</span>' +
         '</div>' +
+        '<div class="badge-row"><span class="service-tag">' + p.service + '</span>' + badge + '</div>' +
         '<div class="rating-row"><span class="stars">' + starString(p.rating) + '</span>' +
           '<span class="rating-num">' + p.rating.toFixed(1) + '</span>' +
           '<span class="review-count">(' + p.reviews + ' Google reviews)</span></div>' +
-        '<div class="card-loc">📍 ' + p.suburb + ', ' + p.state + '</div>' +
         '<div class="card-desc">' + p.desc + '</div>' +
-        '<div class="card-contact"><span>📞 ' + p.phone + '</span><a href="mailto:' + p.email + '">' + p.email + '</a></div>' +
+        '<div class="info-list">' +
+          '<div class="info-row">' + ICONS.pin + '<div class="lines">' + p.suburb + ', ' + p.state + ', ' + p.postcode + '</div></div>' +
+          '<div class="info-row">' + ICONS.phone + '<div class="lines">' + p.phone + '</div></div>' +
+          '<div class="info-row">' + ICONS.mail + '<div class="lines"><a class="truncate" href="mailto:' + p.email + '" title="' + p.email + '">' + p.email + '</a></div></div>' +
+          '<div class="info-row">' + ICONS.link + '<div class="lines"><a href="#" onclick="return false;">' + p.website + '</a></div></div>' +
+          '<div class="info-row">' + ICONS.bank + '<div class="lines">ABN: ' + p.abn + '</div></div>' +
+          '<div class="info-row">' + ICONS.clock + '<div class="lines">' + hoursHtml + '</div></div>' +
+          '<div class="info-row">' + ICONS.briefcase + '<div class="lines">Profession: ' + p.profession + '</div></div>' +
+        '</div>' +
+        renderRegGroups(p.regGroups, idx) +
+        '<div class="status-line">' + (p.ndis ? '<span class="dot-active">●</span> ' + p.status : p.status) + '</div>' +
       '</div>'
     );
   }
