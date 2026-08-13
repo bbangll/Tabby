@@ -37,13 +37,55 @@
   }
   .proto-flag strong{color:#FFD97A;}
 
-  header.top{
-    background:var(--w);border-bottom:1px solid var(--b);padding:22px 0;
+  /* ---- real site topbar + nav (copied from static/css/style.css) ---- */
+  .icon{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-0.15em;flex-shrink:0}
+  a{color:inherit;text-decoration:none;}
+  .topbar{background:var(--nd);min-height:40px;display:flex;align-items:center;padding:6px 32px;justify-content:space-between;border-bottom:2px solid var(--p);flex-wrap:wrap;gap:8px}
+  .topbar-left{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .topbar-link{color:rgba(255,255,255,.85);font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:5px;transition:color .2s}
+  .topbar-link:hover{color:#fff}
+  .topbar-link .icon{font-size:14px;color:var(--g)}
+  .topbar-langs{display:flex;align-items:center;gap:7px;margin-left:-2px}
+  .topbar-lang{font-size:12px;color:rgba(255,255,255,.5)}
+  .topbar-cta{background:var(--p);color:#fff;font-size:11px;font-weight:700;padding:5px 16px;border-radius:20px;letter-spacing:.02em;transition:background .2s}
+  .topbar-cta:hover{background:var(--pl)}
+
+  nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.98);backdrop-filter:blur(16px);border-bottom:1px solid var(--b);min-height:72px;display:flex;align-items:center;padding:0 32px;justify-content:space-between;box-shadow:var(--sh)}
+  .nav-logo{display:flex;align-items:center;gap:12px}
+  .nav-logo-mark{width:42px;height:42px;border-radius:50%;background:var(--pt);border:2px solid var(--p);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .nav-logo-mark .icon{font-size:20px;color:var(--p)}
+  .nav-logo-name{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--n);line-height:1.1}
+  .nav-logo-sub{font-size:10px;color:var(--tm);letter-spacing:.04em;text-transform:uppercase}
+  .nav-toggle{display:none;background:none;border:2px solid var(--b);border-radius:8px;width:42px;height:42px;align-items:center;justify-content:center;cursor:pointer;color:var(--n);font-size:20px}
+  .nav-menu{display:flex;align-items:center;gap:24px}
+  .nav-links{display:flex;align-items:center;gap:2px}
+  .nav-link{font-size:13px;font-weight:500;color:var(--tm);padding:8px 12px;border-radius:8px;transition:all .2s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .nav-link:hover,.nav-link.active{color:var(--p);background:var(--pt)}
+  .nav-link .icon{font-size:12px}
+  .nav-dropdown{position:relative}
+  .nav-dropdown-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--w);border:1px solid var(--b);border-radius:var(--r);box-shadow:var(--sh2);padding:8px;min-width:230px;z-index:50}
+  .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel{display:block}
+  .nav-dropdown-panel a{display:block;font-size:13px;color:var(--t);padding:9px 12px;border-radius:6px;transition:background .15s}
+  .nav-dropdown-panel a:hover{background:var(--pt);color:var(--p)}
+  .nav-actions{display:flex;align-items:center;gap:10px}
+  .nav-phone{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--n);padding:8px 14px;border:2px solid var(--b);border-radius:30px;transition:all .2s}
+  .nav-phone:hover{border-color:var(--p);color:var(--p)}
+  .nav-cta{background:var(--g);color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:30px;transition:all .2s;display:flex;align-items:center;gap:6px}
+  .nav-cta:hover{background:#3a6232;transform:translateY(-1px);box-shadow:0 4px 16px rgba(74,124,63,.3)}
+  .nav-refer{background:var(--p);color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:30px;transition:all .2s}
+  .nav-refer:hover{background:var(--pd)}
+
+  @media(max-width:700px){
+    nav{padding:0 16px}
+    .nav-toggle{display:flex}
+    .nav-menu{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-bottom:1px solid var(--b);box-shadow:var(--sh2);flex-direction:column;align-items:stretch;padding:16px;gap:16px}
+    .nav-menu.open{display:flex}
+    .nav-links{flex-direction:column;align-items:stretch;gap:4px}
+    .nav-dropdown-panel{position:static;display:block;box-shadow:none;border:none;padding:0 0 0 16px;margin-top:4px}
+    .nav-actions{flex-direction:column;align-items:stretch}
+    .topbar-langs{display:none}
+    .topbar{padding:6px 16px}
   }
-  header.top .wrap{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
-  .brand{font-family:var(--fd);font-weight:700;font-size:22px;color:var(--n);text-decoration:none;}
-  .brand span{color:var(--p);}
-  .brand-sub{font-size:12px;color:var(--tm);margin-top:2px;}
 
   .hero{
     background:linear-gradient(135deg,var(--pt) 0%,var(--gl) 100%);
@@ -123,6 +165,12 @@
   .review-count{font-size:12.5px;color:var(--tm);}
 
   .info-list{display:flex;flex-direction:column;gap:9px;padding-top:6px;border-top:1px solid var(--b);margin-top:4px;}
+  .expand-toggle{
+    display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;
+    color:var(--p);font-weight:700;font-size:12.5px;font-family:var(--fb);padding:8px 0 2px;
+    margin-top:2px;
+  }
+  .expand-toggle .chev{width:14px;height:14px;transition:transform .18s ease;}
   .info-row{display:flex;gap:11px;font-size:13.5px;color:var(--t);}
   .info-row .ic{flex:none;width:18px;height:18px;color:var(--p);margin-top:1px;}
   .info-row .lines{display:flex;flex-direction:column;gap:2px;min-width:0;}
@@ -157,14 +205,77 @@
 
 <div class="proto-flag">🧪 <strong>Prototype only — not deployed.</strong> All providers, ratings and contact details below are fictional placeholders for visualising the layout.</div>
 
-<header class="top">
-  <div class="wrap">
-    <div>
-      <a href="#" class="brand">The Health <span>&</span> Well-being Hub</a>
-      <div class="brand-sub">Allied Health &amp; NDIS Provider Directory</div>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" /></symbol>
+  <symbol id="i-brand-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" /><path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" /></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" /></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12l14 0" /><path d="M13 18l6 -6" /><path d="M13 6l6 6" /></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6l6 -6" /></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M10 14l11 -11" /><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" /></symbol>
+  <symbol id="i-menu-2" viewBox="0 0 24 24"><path d="M4 6l16 0" /><path d="M4 12l16 0" /><path d="M4 18l16 0" /></symbol>
+</svg>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="tel:0433604507" class="topbar-link"><svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg> 0433 604 507</a>
+    <a href="https://wa.me/61433604507" class="topbar-link" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-brand-whatsapp"></use></svg> WhatsApp</a>
+    <div class="topbar-langs">
+      <span class="topbar-lang">🇸🇦 Arabic</span>
+      <span class="topbar-lang">🇸🇴 Somali</span>
+      <span class="topbar-lang">🇦🇫 Dari</span>
+      <span class="topbar-lang">🇪🇹 Amharic</span>
     </div>
   </div>
-</header>
+  <a href="/contact/" class="topbar-cta">Make an enquiry</a>
+</div>
+
+<nav aria-label="Primary">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark"><svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg></div>
+    <div>
+      <div class="nav-logo-name">H <span class="amp">&amp;</span> W</div>
+      <div class="nav-logo-sub">Health <span class="amp">&amp;</span> Wellbeing</div>
+    </div>
+  </a>
+
+  <button class="nav-toggle" id="nav-toggle" aria-controls="nav-menu" aria-expanded="false" aria-label="Open menu">
+    <svg class="icon" aria-hidden="true"><use href="#i-menu-2"></use></svg>
+  </button>
+
+  <div class="nav-menu" id="nav-menu">
+    <div class="nav-links">
+      <div class="nav-dropdown">
+        <a href="/services/" class="nav-link">Services <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"></use></svg></a>
+        <div class="nav-dropdown-panel">
+          <a href="/services/support-coordination/">Support Coordination</a>
+          <a href="/services/core-supports-daily-living/">Core Supports &amp; Daily Living</a>
+          <a href="/services/community-participation/">Community Participation</a>
+          <a href="/services/therapy-services/">Therapy Services</a>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <a href="/locations/logan/" class="nav-link">Service Areas <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"></use></svg></a>
+        <div class="nav-dropdown-panel">
+          <a href="/locations/logan-central/">Logan Central</a>
+          <a href="/locations/logan/">Logan</a>
+          <a href="/locations/brisbane/">Brisbane</a>
+          <a href="/locations/gold-coast/">Gold Coast</a>
+          <a href="/locations/ipswich/">Ipswich</a>
+        </div>
+      </div>
+      <a href="/multilingual-ndis-support/" class="nav-link">Multilingual Support</a>
+      <a href="/about/" class="nav-link">About</a>
+      <a href="/blog/" class="nav-link">Blog</a>
+      <a href="/contact/" class="nav-link">Contact</a>
+      <a href="/prototype-directory.html" class="nav-link active">Provider Directory</a>
+    </div>
+    <div class="nav-actions">
+      <a href="tel:0433604507" class="nav-phone"><svg class="icon" aria-hidden="true"><use href="#i-phone"></use></svg> 0433 604 507</a>
+      <a href="/referrals/" class="nav-refer">Refer a participant</a>
+      <a href="/contact/" class="nav-cta"><svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg> Get started</a>
+    </div>
+  </div>
+</nav>
 
 <section class="hero">
   <div class="wrap">
@@ -208,7 +319,19 @@
 </main>
 
 <script>
-  var STD_HOURS = ["Monday: 9:00AM-5:00PM","Tuesday: 9:00AM-5:00PM","Wednesday: 9:00AM-5:00PM","Thursday: 9:00AM-5:00PM","Friday: 9:00AM-5:00PM"];
+  /* ---- mobile nav toggle (matches static/js/main.js) ---- */
+  (function () {
+    var navToggle = document.getElementById('nav-toggle');
+    var navMenu = document.getElementById('nav-menu');
+    if (navToggle && navMenu) {
+      navToggle.addEventListener('click', function () {
+        var open = navMenu.classList.toggle('open');
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+  })();
+
+  var STD_HOURS =["Monday: 9:00AM-5:00PM","Tuesday: 9:00AM-5:00PM","Wednesday: 9:00AM-5:00PM","Thursday: 9:00AM-5:00PM","Friday: 9:00AM-5:00PM"];
   var EARLY_HOURS = ["Monday: 8:30AM-4:30PM","Tuesday: 8:30AM-4:30PM","Wednesday: 8:30AM-4:30PM","Thursday: 8:30AM-4:30PM","Friday: 8:30AM-4:30PM"];
   var SHORT_HOURS = ["Monday: 9:00AM-4:00PM","Tuesday: 9:00AM-4:00PM","Wednesday: 9:00AM-4:00PM","Thursday: 9:00AM-4:00PM","Friday: 9:00AM-4:00PM"];
   var EXT_HOURS = ["Monday: 8:00AM-6:00PM","Tuesday: 8:00AM-6:00PM","Wednesday: 8:00AM-6:00PM","Thursday: 8:00AM-6:00PM","Friday: 8:00AM-6:00PM"];
@@ -315,16 +438,34 @@
         '<div class="info-list">' +
           '<div class="info-row">' + ICONS.pin + '<div class="lines">' + p.suburb + ', ' + p.state + ', ' + p.postcode + '</div></div>' +
           '<div class="info-row">' + ICONS.phone + '<div class="lines">' + p.phone + '</div></div>' +
+        '</div>' +
+        '<button class="expand-toggle" id="exp-' + idx + '-btn" onclick="toggleExpand(' + idx + ')">' +
+          '<span id="exp-' + idx + '-label">Show more details</span>' +
+          '<svg class="ic chev" id="exp-' + idx + '-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div class="info-list extra-info" id="exp-' + idx + '" style="display:none;">' +
           '<div class="info-row">' + ICONS.mail + '<div class="lines"><a class="truncate" href="mailto:' + p.email + '" title="' + p.email + '">' + p.email + '</a></div></div>' +
           '<div class="info-row">' + ICONS.link + '<div class="lines"><a href="#" onclick="return false;">' + p.website + '</a></div></div>' +
           '<div class="info-row">' + ICONS.bank + '<div class="lines">ABN: ' + p.abn + '</div></div>' +
           '<div class="info-row">' + ICONS.clock + '<div class="lines">' + hoursHtml + '</div></div>' +
+        '</div>' +
+        '<div class="info-list" style="border-top:none;padding-top:0;">' +
           '<div class="info-row">' + ICONS.briefcase + '<div class="lines">Profession: ' + p.profession + '</div></div>' +
         '</div>' +
         renderRegGroups(p.regGroups, idx) +
         '<div class="status-line">' + (p.ndis ? '<span class="dot-active">●</span> ' + p.status : p.status) + '</div>' +
       '</div>'
     );
+  }
+
+  function toggleExpand(idx) {
+    var block = document.getElementById('exp-' + idx);
+    var label = document.getElementById('exp-' + idx + '-label');
+    var chev = document.getElementById('exp-' + idx + '-chev');
+    var open = block.style.display !== 'none';
+    block.style.display = open ? 'none' : 'flex';
+    label.textContent = open ? 'Show more details' : 'Show less details';
+    chev.style.transform = open ? '' : 'rotate(180deg)';
   }
 
   function applyFilters() {
