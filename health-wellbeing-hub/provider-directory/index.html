@@ -63,8 +63,18 @@
   ]
 }</script>
 <style>
+  .dir-hero{
+    background:linear-gradient(135deg,var(--pt) 0%,var(--gl) 100%);
+    padding:48px 0 40px;text-align:center;
+  }
+  .dir-hero h1{
+    font-family:var(--fd);font-weight:700;font-size:clamp(28px,4vw,40px);
+    color:var(--n);margin:0 0 10px;text-wrap:balance;
+  }
+  .dir-hero p{color:var(--tm);font-size:16px;max-width:600px;margin:0 auto 28px;}
+
   .dir-search-bar{
-    max-width:640px;display:flex;gap:10px;background:var(--w);
+    max-width:640px;margin:0 auto;display:flex;gap:10px;background:var(--w);
     border-radius:999px;box-shadow:var(--sh2);padding:6px 6px 6px 22px;align-items:center;
   }
   .dir-search-bar svg{flex:none;color:var(--tm);}
@@ -74,13 +84,13 @@
   }
   .dir-search-bar input::placeholder{color:#9a95a8;}
   .dir-search-bar button{
-    background:var(--n);color:#fff;border:none;border-radius:999px;padding:12px 26px;
+    background:var(--p);color:#fff;border:none;border-radius:999px;padding:12px 26px;
     font-family:var(--fb);font-weight:700;font-size:14px;cursor:pointer;flex:none;
   }
-  .dir-search-bar button:hover{background:var(--nd);}
+  .dir-search-bar button:hover{background:var(--pd);}
 
-  .dir-filters-section{background:var(--w);border-bottom:1px solid var(--b);padding:20px 32px;}
-  .dir-filters-row{max-width:1200px;margin:0 auto;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .dir-filters-section{background:var(--w);border-bottom:1px solid var(--b);padding:20px 0;}
+  .dir-filters-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
   .dir-filter-group{display:flex;flex-direction:column;gap:5px;}
   .dir-filter-group label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tm);}
   .dir-filter-group select{
@@ -98,10 +108,11 @@
     margin-left:auto;padding-top:16px;font-size:13px;font-weight:700;color:var(--p);
     background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:var(--fb);
   }
-  .dir-results-count{max-width:1200px;margin:0 auto;padding:16px 0 0;font-size:13.5px;color:var(--tm);}
+  .dir-results-count{padding:16px 0 4px;font-size:13.5px;color:var(--tm);}
   .dir-results-count strong{color:var(--t);}
 
-  .dir-wrap{max-width:1200px;margin:0 auto;padding:24px 32px 64px;}
+  .dir-wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+  .dir-main-wrap{max-width:1180px;margin:0 auto;padding:24px 24px 64px;}
   .dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px;}
 
   .dir-card{
@@ -132,7 +143,7 @@
   }
   .dir-ndis-badge.not-approved{background:#F3EFF6;color:#8a8394;}
   .dir-rating-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
-  .dir-stars{color:#F5A623;font-size:14px;letter-spacing:1px;}
+  .dir-stars{color:#C98A1B;font-size:14px;letter-spacing:1px;}
   .dir-rating-num{font-weight:700;font-size:13.5px;color:var(--t);}
   .dir-review-count{font-size:12.5px;color:var(--tm);}
 
@@ -164,17 +175,16 @@
   .dir-cta-btn:hover{background:var(--pd);}
 
   .dir-demo-banner{
-    background:#FFF7E6;border-bottom:2px solid #F0B429;color:#7A5B0A;
-    font-size:13.5px;font-weight:600;text-align:center;padding:10px 20px;
+    background:var(--nd);color:#fff;text-align:center;font-size:13px;font-weight:600;
+    padding:9px 16px;letter-spacing:.02em;
   }
-  .dir-demo-banner strong{font-weight:800;}
+  .dir-demo-banner strong{color:#FFD97A;}
   .dir-loading{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--tm);font-size:14px;}
 
   @media (max-width:640px){
     .dir-search-bar{flex-direction:column;border-radius:var(--rl);padding:14px;}
     .dir-search-bar button{width:100%;}
     .dir-clear-filters{margin-left:0;}
-    .dir-filters-section,.dir-wrap{padding-left:20px;padding-right:20px;}
   }
 </style>
 
@@ -467,11 +477,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <li><span aria-current="page">Provider Directory</span></li>
   </ol>
 </nav><div class="dir-demo-banner">🧪 <strong>Sample data for preview only</strong> — the providers below are fictional placeholders (names, ratings and contact details are all made up) while we build out a verified directory. None of this is real.</div>
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div class="page-eyebrow"><svg class="icon" aria-hidden="true"><use href="#i-list"></use></svg> Provider directory</div>
-    <h1 class="page-h1">Find a trusted allied health or NDIS provider</h1>
-    <p class="page-sub">Search our directory of allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland.</p>
+<section class="dir-hero">
+  <div class="dir-wrap">
+    <h1>Find a trusted allied health or NDIS provider</h1>
+    <p>Search our network of allied health professionals and NDIS service providers across South East Queensland.</p>
     <div class="dir-search-bar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="dirSearchInput" placeholder="Search by name or service type (e.g. Occupational Therapy)" aria-label="Search providers">
@@ -481,29 +490,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </section>
 
 <section class="dir-filters-section">
-  <div class="dir-filters-row">
-    <div class="dir-filter-group">
-      <label for="dirLocationFilter">Location</label>
-      <select id="dirLocationFilter"><option value="">All locations</option></select>
+  <div class="dir-wrap">
+    <div class="dir-filters-row">
+      <div class="dir-filter-group">
+        <label for="dirLocationFilter">Location</label>
+        <select id="dirLocationFilter"><option value="">All locations</option></select>
+      </div>
+      <div class="dir-filter-group">
+        <label for="dirStateFilter">State</label>
+        <select id="dirStateFilter"><option value="">All states</option></select>
+      </div>
+      <div class="dir-filter-group">
+        <label for="dirServiceFilter">Service type</label>
+        <select id="dirServiceFilter"><option value="">All services</option></select>
+      </div>
+      <div class="dir-toggle-group">
+        <input type="checkbox" id="dirNdisFilter">
+        <label for="dirNdisFilter">NDIS Approved only</label>
+      </div>
+      <button class="dir-clear-filters" id="dirClearFilters" type="button">Clear all filters</button>
     </div>
-    <div class="dir-filter-group">
-      <label for="dirStateFilter">State</label>
-      <select id="dirStateFilter"><option value="">All states</option></select>
-    </div>
-    <div class="dir-filter-group">
-      <label for="dirServiceFilter">Service type</label>
-      <select id="dirServiceFilter"><option value="">All services</option></select>
-    </div>
-    <div class="dir-toggle-group">
-      <input type="checkbox" id="dirNdisFilter">
-      <label for="dirNdisFilter">NDIS Approved only</label>
-    </div>
-    <button class="dir-clear-filters" id="dirClearFilters" type="button">Clear all filters</button>
+    <div class="dir-results-count" id="dirResultsCount"></div>
   </div>
-  <div class="dir-results-count" id="dirResultsCount"></div>
 </section>
 
-<div class="dir-wrap">
+<div class="dir-main-wrap">
   <div class="dir-grid" id="dirProviderGrid"></div>
 </div>
 </main>
