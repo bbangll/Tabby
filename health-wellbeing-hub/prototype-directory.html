@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allied Health & NDIS Provider Directory — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --p:#7B2D8B;--pd:#5C2068;--pl:#9B4DAB;
+    --pt:#F5EDF8;--pt2:#EAD8F0;
+    --n:#1D3461;--nd:#122040;
+    --g:#4A7C3F;--gl:#EAF3DE;
+    --w:#fff;--ow:#FAFAFA;
+    --t:#1a1a2e;--tm:#5a5a7a;
+    --b:#E8E0ED;
+    --star:#C98A1B;--star-bg:#FBF1DC;
+    --fd:'Playfair Display',Georgia,serif;
+    --fb:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --r:10px;--rl:18px;--rxl:28px;
+    --sh:0 2px 20px rgba(123,45,139,.08);
+    --sh2:0 8px 40px rgba(123,45,139,.15);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--fb);color:var(--t);background:var(--ow);line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+
+  .proto-flag{
+    background:var(--nd);color:#fff;text-align:center;font-size:13px;font-weight:600;
+    padding:9px 16px;letter-spacing:.02em;
+  }
+  .proto-flag strong{color:#FFD97A;}
+
+  header.top{
+    background:var(--w);border-bottom:1px solid var(--b);padding:22px 0;
+  }
+  header.top .wrap{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+  .brand{font-family:var(--fd);font-weight:700;font-size:22px;color:var(--n);text-decoration:none;}
+  .brand span{color:var(--p);}
+  .brand-sub{font-size:12px;color:var(--tm);margin-top:2px;}
+
+  .hero{
+    background:linear-gradient(135deg,var(--pt) 0%,var(--gl) 100%);
+    padding:48px 0 40px;text-align:center;
+  }
+  .hero h1{
+    font-family:var(--fd);font-weight:700;font-size:clamp(28px,4vw,40px);
+    color:var(--n);margin:0 0 10px;text-wrap:balance;
+  }
+  .hero p{color:var(--tm);font-size:16px;max-width:600px;margin:0 auto 28px;}
+
+  .search-bar{
+    max-width:640px;margin:0 auto;display:flex;gap:10px;background:var(--w);
+    border-radius:999px;box-shadow:var(--sh2);padding:6px 6px 6px 22px;align-items:center;
+  }
+  .search-bar svg{flex:none;color:var(--tm);}
+  .search-bar input{
+    border:none;outline:none;font-family:var(--fb);font-size:15px;flex:1;padding:12px 0;
+    background:transparent;color:var(--t);
+  }
+  .search-bar input::placeholder{color:#9a95a8;}
+  .search-bar button{
+    background:var(--p);color:#fff;border:none;border-radius:999px;padding:12px 26px;
+    font-family:var(--fb);font-weight:700;font-size:14px;cursor:pointer;flex:none;
+  }
+  .search-bar button:hover{background:var(--pd);}
+
+  .filters-section{background:var(--w);border-bottom:1px solid var(--b);padding:20px 0;}
+  .filters-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .filter-group{display:flex;flex-direction:column;gap:5px;}
+  .filter-group label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tm);}
+  select{
+    font-family:var(--fb);font-size:14px;color:var(--t);background:var(--ow);
+    border:1px solid var(--b);border-radius:var(--r);padding:9px 34px 9px 12px;
+    cursor:pointer;appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%235a5a7a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+    background-repeat:no-repeat;background-position:right 10px center;
+  }
+  select:focus{outline:2px solid var(--pl);outline-offset:1px;}
+  .toggle-group{display:flex;align-items:center;gap:8px;padding-top:16px;}
+  .toggle-group input[type="checkbox"]{width:17px;height:17px;accent-color:var(--p);cursor:pointer;}
+  .toggle-group label{font-size:14px;font-weight:600;color:var(--t);cursor:pointer;}
+  .clear-filters{
+    margin-left:auto;padding-top:16px;font-size:13px;font-weight:700;color:var(--p);
+    background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  }
+  .results-count{padding:16px 0 4px;font-size:13.5px;color:var(--tm);}
+  .results-count strong{color:var(--t);}
+
+  main.wrap{padding:24px 24px 64px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px;}
+
+  .card{
+    background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:20px;
+    box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;
+  }
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card h3{font-family:var(--fd);font-weight:700;font-size:17px;color:var(--n);margin:0;line-height:1.3;}
+  .service-tag{
+    display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:999px;margin-top:6px;
+  }
+  .ndis-badge{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    background:var(--gl);color:var(--g);padding:3px 9px;border-radius:999px;flex:none;white-space:nowrap;
+  }
+  .ndis-badge.not-approved{background:#F3EFF6;color:#8a8394;}
+  .rating-row{display:flex;align-items:center;gap:6px;}
+  .stars{color:var(--star);font-size:14px;letter-spacing:1px;}
+  .rating-num{font-weight:700;font-size:13.5px;color:var(--t);}
+  .review-count{font-size:12.5px;color:var(--tm);}
+  .card-loc{font-size:13.5px;color:var(--tm);display:flex;align-items:center;gap:5px;}
+  .card-contact{
+    display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--t);
+    border-top:1px solid var(--b);padding-top:10px;margin-top:2px;
+  }
+  .card-contact a{color:var(--p);text-decoration:none;font-weight:600;}
+  .card-contact a:hover{text-decoration:underline;}
+  .card-desc{font-size:13px;color:var(--tm);line-height:1.5;}
+
+  .no-results{
+    text-align:center;padding:60px 20px;color:var(--tm);grid-column:1/-1;
+  }
+  .no-results .big{font-size:32px;margin-bottom:10px;}
+  .no-results strong{color:var(--t);display:block;margin-bottom:6px;font-size:16px;}
+
+  @media (max-width:640px){
+    .search-bar{flex-direction:column;border-radius:var(--rl);padding:14px;}
+    .search-bar button{width:100%;}
+    .clear-filters{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-flag">🧪 <strong>Prototype only — not deployed.</strong> All providers, ratings and contact details below are fictional placeholders for visualising the layout.</div>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <a href="#" class="brand">The Health <span>&</span> Well-being Hub</a>
+      <div class="brand-sub">Allied Health &amp; NDIS Provider Directory</div>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Find a trusted allied health or NDIS provider</h1>
+    <p>Search our network of allied health professionals and NDIS service providers across South East Queensland.</p>
+    <div class="search-bar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Search by name or service type (e.g. Occupational Therapy)">
+      <button id="searchBtn">Search</button>
+    </div>
+  </div>
+</section>
+
+<section class="filters-section">
+  <div class="wrap">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label for="locationFilter">Location</label>
+        <select id="locationFilter"><option value="">All locations</option></select>
+      </div>
+      <div class="filter-group">
+        <label for="stateFilter">State</label>
+        <select id="stateFilter"><option value="">All states</option></select>
+      </div>
+      <div class="filter-group">
+        <label for="serviceFilter">Service type</label>
+        <select id="serviceFilter"><option value="">All services</option></select>
+      </div>
+      <div class="toggle-group">
+        <input type="checkbox" id="ndisFilter">
+        <label for="ndisFilter">NDIS Approved only</label>
+      </div>
+      <button class="clear-filters" id="clearFilters">Clear all filters</button>
+    </div>
+    <div class="results-count" id="resultsCount"></div>
+  </div>
+</section>
+
+<main class="wrap">
+  <div class="grid" id="providerGrid"></div>
+</main>
+
+<script>
+  var PROVIDERS = [
+    { name: "Riverside Occupational Therapy", service: "Occupational Therapy", suburb: "Logan Central", state: "QLD", ndis: true, rating: 4.8, reviews: 62, phone: "07 3xxx xxxx", email: "hello@example.com", desc: "Paediatric and adult OT, home modifications, sensory assessments." },
+    { name: "Bright Path Physiotherapy", service: "Physiotherapy", suburb: "Springwood", state: "QLD", ndis: true, rating: 4.6, reviews: 41, phone: "07 3xxx xxxx", email: "info@example.com", desc: "Mobility, rehabilitation and NDIS-funded physio programs." },
+    { name: "Harbourside Speech & Language", service: "Speech Pathology", suburb: "Brisbane City", state: "QLD", ndis: true, rating: 4.9, reviews: 88, phone: "07 3xxx xxxx", email: "contact@example.com", desc: "Multilingual speech pathology for children and adults." },
+    { name: "Clearview Psychology Group", service: "Psychology", suburb: "Sunnybank", state: "QLD", ndis: true, rating: 4.7, reviews: 55, phone: "07 3xxx xxxx", email: "team@example.com", desc: "NDIS behaviour support and psychological assessments." },
+    { name: "Metro Plan Management Co", service: "Plan Management", suburb: "Beenleigh", state: "QLD", ndis: true, rating: 4.4, reviews: 29, phone: "07 3xxx xxxx", email: "admin@example.com", desc: "Fast NDIS plan management with a dedicated case contact." },
+    { name: "Horizon Support Coordination", service: "Support Coordination", suburb: "Logan Central", state: "QLD", ndis: true, rating: 4.5, reviews: 37, phone: "07 3xxx xxxx", email: "support@example.com", desc: "Specialist and level-2 support coordination across SEQ." },
+    { name: "Evergreen Disability Services", service: "Community Participation", suburb: "Slacks Creek", state: "QLD", ndis: true, rating: 4.3, reviews: 22, phone: "07 3xxx xxxx", email: "hi@example.com", desc: "Group and 1:1 community access programs." },
+    { name: "TrueNorth Psychology", service: "Psychology", suburb: "Gold Coast", state: "QLD", ndis: false, rating: 4.6, reviews: 74, phone: "07 5xxx xxxx", email: "reception@example.com", desc: "General and NDIS-adjacent psychology services." },
+    { name: "Willow Tree Therapy Services", service: "Occupational Therapy", suburb: "Ipswich", state: "QLD", ndis: true, rating: 4.2, reviews: 18, phone: "07 3xxx xxxx", email: "care@example.com", desc: "Home-based OT for participants across Ipswich region." },
+    { name: "Pinnacle Allied Health", service: "Physiotherapy", suburb: "Upper Mount Gravatt", state: "QLD", ndis: true, rating: 4.9, reviews: 103, phone: "07 3xxx xxxx", email: "book@example.com", desc: "Multi-disciplinary allied health clinic, NDIS registered." },
+    { name: "Fresh Start OT Services", service: "Occupational Therapy", suburb: "Fairfield", state: "QLD", ndis: false, rating: 4.0, reviews: 9, phone: "07 3xxx xxxx", email: "enquiries@example.com", desc: "Sole-practitioner OT, currently building NDIS registration." },
+    { name: "Community Care Nursing QLD", service: "Community Nursing", suburb: "Brendale", state: "QLD", ndis: true, rating: 4.7, reviews: 46, phone: "07 3xxx xxxx", email: "nursing@example.com", desc: "In-home nursing and complex care support." },
+    { name: "Bayside Behaviour Support", service: "Behaviour Support", suburb: "Cleveland", state: "QLD", ndis: true, rating: 4.5, reviews: 31, phone: "07 3xxx xxxx", email: "info@example.com", desc: "Positive behaviour support plans, specialist practitioners." },
+    { name: "Golden Gate Support Coordination", service: "Support Coordination", suburb: "Sydney", state: "NSW", ndis: true, rating: 4.3, reviews: 27, phone: "02 9xxx xxxx", email: "hello@example.com", desc: "Cross-border support coordination for interstate participants." },
+    { name: "Southern Cross Speech Pathology", service: "Speech Pathology", suburb: "Melbourne", state: "VIC", ndis: true, rating: 4.6, reviews: 52, phone: "03 9xxx xxxx", email: "team@example.com", desc: "Telehealth speech pathology available nationally." }
+  ];
+
+  var grid = document.getElementById('providerGrid');
+  var resultsCount = document.getElementById('resultsCount');
+  var searchInput = document.getElementById('searchInput');
+  var locationFilter = document.getElementById('locationFilter');
+  var stateFilter = document.getElementById('stateFilter');
+  var serviceFilter = document.getElementById('serviceFilter');
+  var ndisFilter = document.getElementById('ndisFilter');
+
+  function unique(arr) { return arr.filter(function (v, i) { return arr.indexOf(v) === i; }); }
+
+  function populateSelect(select, values) {
+    unique(values).sort().forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+  populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
+  populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
+  populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+
+  function starString(rating) {
+    var full = Math.round(rating);
+    return '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
+  }
+
+  function renderCard(p) {
+    var badge = p.ndis
+      ? '<span class="ndis-badge">✓ NDIS Approved</span>'
+      : '<span class="ndis-badge not-approved">Not NDIS Registered</span>';
+    return (
+      '<div class="card">' +
+        '<div class="card-top">' +
+          '<div><h3>' + p.name + '</h3><span class="service-tag">' + p.service + '</span></div>' +
+          badge +
+        '</div>' +
+        '<div class="rating-row"><span class="stars">' + starString(p.rating) + '</span>' +
+          '<span class="rating-num">' + p.rating.toFixed(1) + '</span>' +
+          '<span class="review-count">(' + p.reviews + ' Google reviews)</span></div>' +
+        '<div class="card-loc">📍 ' + p.suburb + ', ' + p.state + '</div>' +
+        '<div class="card-desc">' + p.desc + '</div>' +
+        '<div class="card-contact"><span>📞 ' + p.phone + '</span><a href="mailto:' + p.email + '">' + p.email + '</a></div>' +
+      '</div>'
+    );
+  }
+
+  function applyFilters() {
+    var q = searchInput.value.trim().toLowerCase();
+    var loc = locationFilter.value;
+    var state = stateFilter.value;
+    var service = serviceFilter.value;
+    var ndisOnly = ndisFilter.checked;
+
+    var filtered = PROVIDERS.filter(function (p) {
+      if (q && !(p.name.toLowerCase().indexOf(q) > -1 || p.service.toLowerCase().indexOf(q) > -1)) return false;
+      if (loc && p.suburb !== loc) return false;
+      if (state && p.state !== state) return false;
+      if (service && p.service !== service) return false;
+      if (ndisOnly && !p.ndis) return false;
+      return true;
+    });
+
+    resultsCount.innerHTML = '<strong>' + filtered.length + '</strong> provider' + (filtered.length === 1 ? '' : 's') + ' found';
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div class="no-results"><div class="big">🔍</div><strong>No providers match those filters</strong>Try broadening your search or clearing a filter.</div>';
+      return;
+    }
+    grid.innerHTML = filtered.map(renderCard).join('');
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  document.getElementById('searchBtn').addEventListener('click', applyFilters);
+  locationFilter.addEventListener('change', applyFilters);
+  stateFilter.addEventListener('change', applyFilters);
+  serviceFilter.addEventListener('change', applyFilters);
+  ndisFilter.addEventListener('change', applyFilters);
+  document.getElementById('clearFilters').addEventListener('click', function () {
+    searchInput.value = ''; locationFilter.value = ''; stateFilter.value = ''; serviceFilter.value = ''; ndisFilter.checked = false;
+    applyFilters();
+  });
+
+  applyFilters();
+</script>
+
+</body>
+</html>
