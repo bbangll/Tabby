@@ -144,6 +144,23 @@ def build(render, SITE, C):
     )
 
     # ------------------------------------------------------------------
+    # PROVIDER DIRECTORY
+    # ------------------------------------------------------------------
+    path = "/provider-directory/"
+    render(
+        "directory.html", path,
+        title="Allied Health & NDIS Provider Directory | The Health & Well-being Hub",
+        meta_description="Search allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland. Filter by location, state and NDIS registration.",
+        breadcrumbs=crumbs(("Provider Directory", path)),
+        schema_json=S.graph(
+            S.webpage_node(SITE, path, "Allied Health & NDIS Provider Directory", "Searchable directory of allied health professionals and NDIS service providers in South East Queensland."),
+            S.breadcrumb_node(SITE, path, crumbs(("Provider Directory", path))),
+        ),
+        priority="0.7",
+        changefreq="weekly",
+    )
+
+    # ------------------------------------------------------------------
     # MULTILINGUAL
     # ------------------------------------------------------------------
     path = "/multilingual-ndis-support/"

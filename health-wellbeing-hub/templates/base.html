@@ -28,6 +28,8 @@
 
 {% if schema_json %}<script type="application/ld+json">{{ schema_json | safe }}</script>{% endif %}
 
+{% block extra_head %}{% endblock %}
+
 <!-- Google Tag Manager. GA4 and Google Ads conversion tags are configured
      INSIDE this GTM container (not hardcoded here), wired to the
      dataLayer events pushed by /static/js/main.js — see README-SEO.md
@@ -69,5 +71,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 {% include "partials/footer.html" %}
 
 <script src="{{ asset('/static/js/main.js') }}" defer></script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

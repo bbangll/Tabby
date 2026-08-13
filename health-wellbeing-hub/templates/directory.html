@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+  .dir-search-bar{
+    max-width:640px;display:flex;gap:10px;background:var(--w);
+    border-radius:999px;box-shadow:var(--sh2);padding:6px 6px 6px 22px;align-items:center;
+  }
+  .dir-search-bar svg{flex:none;color:var(--tm);}
+  .dir-search-bar input{
+    border:none;outline:none;font-family:var(--fb);font-size:15px;flex:1;padding:12px 0;
+    background:transparent;color:var(--t);
+  }
+  .dir-search-bar input::placeholder{color:#9a95a8;}
+  .dir-search-bar button{
+    background:var(--n);color:#fff;border:none;border-radius:999px;padding:12px 26px;
+    font-family:var(--fb);font-weight:700;font-size:14px;cursor:pointer;flex:none;
+  }
+  .dir-search-bar button:hover{background:var(--nd);}
+
+  .dir-filters-section{background:var(--w);border-bottom:1px solid var(--b);padding:20px 32px;}
+  .dir-filters-row{max-width:1200px;margin:0 auto;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .dir-filter-group{display:flex;flex-direction:column;gap:5px;}
+  .dir-filter-group label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tm);}
+  .dir-filter-group select{
+    font-family:var(--fb);font-size:14px;color:var(--t);background:var(--ow);
+    border:1px solid var(--b);border-radius:var(--r);padding:9px 34px 9px 12px;
+    cursor:pointer;appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%235a5a7a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+    background-repeat:no-repeat;background-position:right 10px center;
+  }
+  .dir-filter-group select:focus{outline:2px solid var(--pl);outline-offset:1px;}
+  .dir-toggle-group{display:flex;align-items:center;gap:8px;padding-top:16px;}
+  .dir-toggle-group input[type="checkbox"]{width:17px;height:17px;accent-color:var(--p);cursor:pointer;}
+  .dir-toggle-group label{font-size:14px;font-weight:600;color:var(--t);cursor:pointer;}
+  .dir-clear-filters{
+    margin-left:auto;padding-top:16px;font-size:13px;font-weight:700;color:var(--p);
+    background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:var(--fb);
+  }
+  .dir-results-count{max-width:1200px;margin:0 auto;padding:16px 0 0;font-size:13.5px;color:var(--tm);}
+  .dir-results-count strong{color:var(--t);}
+
+  .dir-wrap{max-width:1200px;margin:0 auto;padding:24px 32px 64px;}
+  .dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px;}
+
+  .dir-card{
+    background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:22px;
+    box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;
+    cursor:pointer;transition:box-shadow .18s ease,border-color .18s ease;
+  }
+  .dir-card:hover{box-shadow:var(--sh2);border-color:var(--pl);}
+  .dir-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .dir-card h3{font-family:var(--fd);font-weight:700;font-size:18px;color:var(--t);margin:0;line-height:1.3;}
+  .dir-card-region{font-family:var(--fd);font-style:italic;font-size:14px;color:var(--tm);margin:2px 0 4px;}
+  .dir-card-desc{font-size:13.5px;color:var(--tm);line-height:1.5;margin-bottom:2px;}
+  .dir-locate-btn{
+    flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--b);background:var(--ow);
+    display:flex;align-items:center;justify-content:center;color:var(--p);cursor:pointer;
+    padding:0;transition:all .18s ease;font-family:inherit;
+  }
+  .dir-locate-btn:hover{background:var(--pt);border-color:var(--p);}
+  .dir-locate-btn .chev{transition:transform .18s ease;}
+  .dir-badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
+  .dir-service-tag{
+    display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:999px;
+  }
+  .dir-ndis-badge{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+    background:var(--gl);color:var(--g);padding:3px 9px;border-radius:999px;flex:none;white-space:nowrap;
+  }
+  .dir-ndis-badge.not-approved{background:#F3EFF6;color:#8a8394;}
+  .dir-rating-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .dir-stars{color:#F5A623;font-size:14px;letter-spacing:1px;}
+  .dir-rating-num{font-weight:700;font-size:13.5px;color:var(--t);}
+  .dir-review-count{font-size:12.5px;color:var(--tm);}
+
+  .dir-info-list{display:flex;flex-direction:column;gap:9px;padding-top:6px;border-top:1px solid var(--b);margin-top:4px;}
+  .dir-info-row{display:flex;gap:11px;font-size:13.5px;color:var(--t);}
+  .dir-info-row .ic{flex:none;width:18px;height:18px;color:var(--p);margin-top:1px;}
+  .dir-info-row .lines{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .dir-info-row a{color:var(--t);text-decoration:none;}
+  .dir-info-row a:hover{color:var(--p);text-decoration:underline;}
+  .dir-info-row .truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;}
+
+  .dir-reg-groups{font-size:13.5px;color:var(--t);}
+  .dir-reg-groups .lbl{color:var(--tm);}
+  .dir-reg-groups .show-toggle{
+    color:var(--p);font-weight:700;background:none;border:none;cursor:pointer;font-size:13px;
+    padding:0;margin-left:4px;text-decoration:underline;text-underline-offset:2px;font-family:var(--fb);
+  }
+  .dir-status-line{font-size:13px;color:var(--tm);padding-top:2px;}
+  .dir-status-line .dot-active{color:var(--g);font-weight:700;}
+
+  .dir-empty{
+    text-align:center;padding:64px 24px;color:var(--tm);grid-column:1/-1;
+    background:var(--ow);border:1px dashed var(--b);border-radius:var(--rl);
+  }
+  .dir-empty .big{font-size:34px;margin-bottom:12px;}
+  .dir-empty strong{color:var(--t);display:block;margin-bottom:8px;font-size:17px;font-family:var(--fd);}
+  .dir-empty p{max-width:440px;margin:0 auto 16px;line-height:1.6;}
+  .dir-cta-btn{display:inline-flex;background:var(--p);color:#fff;border-radius:999px;padding:10px 22px;font-weight:700;font-size:14px;text-decoration:none;align-items:center;gap:8px;}
+  .dir-cta-btn:hover{background:var(--pd);}
+
+  @media (max-width:640px){
+    .dir-search-bar{flex-direction:column;border-radius:var(--rl);padding:14px;}
+    .dir-search-bar button{width:100%;}
+    .dir-clear-filters{margin-left:0;}
+    .dir-filters-section,.dir-wrap{padding-left:20px;padding-right:20px;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div class="page-eyebrow">{{ icon('list') }} Provider directory</div>
+    <h1 class="page-h1">Find a trusted allied health or NDIS provider</h1>
+    <p class="page-sub">Search our directory of allied health professionals and NDIS service providers across Logan, Brisbane and South East Queensland.</p>
+    <div class="dir-search-bar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="dirSearchInput" placeholder="Search by name or service type (e.g. Occupational Therapy)" aria-label="Search providers">
+      <button id="dirSearchBtn" type="button">Search</button>
+    </div>
+  </div>
+</section>
+
+<section class="dir-filters-section">
+  <div class="dir-filters-row">
+    <div class="dir-filter-group">
+      <label for="dirLocationFilter">Location</label>
+      <select id="dirLocationFilter"><option value="">All locations</option></select>
+    </div>
+    <div class="dir-filter-group">
+      <label for="dirStateFilter">State</label>
+      <select id="dirStateFilter"><option value="">All states</option></select>
+    </div>
+    <div class="dir-filter-group">
+      <label for="dirServiceFilter">Service type</label>
+      <select id="dirServiceFilter"><option value="">All services</option></select>
+    </div>
+    <div class="dir-toggle-group">
+      <input type="checkbox" id="dirNdisFilter">
+      <label for="dirNdisFilter">NDIS Approved only</label>
+    </div>
+    <button class="dir-clear-filters" id="dirClearFilters" type="button">Clear all filters</button>
+  </div>
+  <div class="dir-results-count" id="dirResultsCount"></div>
+</section>
+
+<div class="dir-wrap">
+  <div class="dir-grid" id="dirProviderGrid"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  // No providers published yet — listings go here once verified, keeping the
+  // search/filter UI already wired up and ready.
+  var PROVIDERS = [];
+
+  var grid = document.getElementById('dirProviderGrid');
+  var resultsCount = document.getElementById('dirResultsCount');
+  var searchInput = document.getElementById('dirSearchInput');
+  var locationFilter = document.getElementById('dirLocationFilter');
+  var stateFilter = document.getElementById('dirStateFilter');
+  var serviceFilter = document.getElementById('dirServiceFilter');
+  var ndisFilter = document.getElementById('dirNdisFilter');
+
+  function unique(arr) { return arr.filter(function (v, i) { return arr.indexOf(v) === i; }); }
+
+  function populateSelect(select, values) {
+    unique(values).sort().forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+  populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
+  populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
+  populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+
+  function starString(rating) {
+    var full = Math.round(rating);
+    return '★★★★★'.slice(0, full) + '☆☆☆☆☆'.slice(0, 5 - full);
+  }
+
+  var ICONS = {
+    pin: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    phone: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.65 2.65a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.43-1.42a2 2 0 0 1 2.11-.45c.86.31 1.75.53 2.65.65A2 2 0 0 1 22 16.92Z"/></svg>',
+    mail: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+    link: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    bank: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 21 7 3 7"/></svg>',
+    clock: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    briefcase: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'
+  };
+
+  function renderRegGroups(groups, idx) {
+    if (!groups.length) return '<div class="dir-reg-groups"><span class="lbl">Registration Group:</span> None</div>';
+    var shortList = groups.slice(0, 1).join(', ') + (groups.length > 1 ? '…' : '');
+    var fullList = groups.join(', ');
+    var id = 'dir-reg-' + idx;
+    if (groups.length <= 1) {
+      return '<div class="dir-reg-groups"><span class="lbl">Registration Group:</span><br>' + fullList + '</div>';
+    }
+    return (
+      '<div class="dir-reg-groups">' +
+        '<span class="lbl">Registration Group:</span><br>' +
+        '<span id="' + id + '-short">' + shortList + '<button class="show-toggle" onclick="dirToggleReg(' + idx + ')">show all</button></span>' +
+        '<span id="' + id + '-full" style="display:none;">' + fullList + ' <button class="show-toggle" onclick="dirToggleReg(' + idx + ')">show less</button></span>' +
+      '</div>'
+    );
+  }
+
+  window.dirToggleReg = function (idx) {
+    var short = document.getElementById('dir-reg-' + idx + '-short');
+    var full = document.getElementById('dir-reg-' + idx + '-full');
+    var showingFull = full.style.display !== 'none';
+    short.style.display = showingFull ? '' : 'none';
+    full.style.display = showingFull ? 'none' : '';
+  };
+
+  function renderCard(p, idx) {
+    var badge = p.ndis
+      ? '<span class="dir-ndis-badge">✓ NDIS Approved</span>'
+      : '<span class="dir-ndis-badge not-approved">Not NDIS Registered</span>';
+
+    var hoursHtml = p.hours.map(function (h) { return h; }).join('<br>');
+
+    return (
+      '<div class="dir-card" onclick="dirHandleCardClick(event, ' + idx + ')">' +
+        '<div class="dir-card-top">' +
+          '<div><h3>' + p.name + '</h3><div class="dir-card-region">' + p.suburb + '</div></div>' +
+          '<button class="dir-locate-btn" id="dir-exp-' + idx + '-btn" type="button" title="Show more details" aria-expanded="false">' +
+            '<svg class="chev" id="dir-exp-' + idx + '-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="dir-badge-row"><span class="dir-service-tag">' + p.service + '</span>' + badge + '</div>' +
+        '<div class="dir-rating-row"><span class="dir-stars">' + starString(p.rating) + '</span>' +
+          '<span class="dir-rating-num">' + p.rating.toFixed(1) + '</span>' +
+          '<span class="dir-review-count">(' + p.reviews + ' Google reviews)</span></div>' +
+        '<div class="dir-card-desc">' + p.desc + '</div>' +
+        '<div class="dir-info-list">' +
+          '<div class="dir-info-row">' + ICONS.pin + '<div class="lines">' + p.suburb + ', ' + p.state + ', ' + p.postcode + '</div></div>' +
+          '<div class="dir-info-row">' + ICONS.phone + '<div class="lines">' + p.phone + '</div></div>' +
+        '</div>' +
+        '<div class="dir-info-list" id="dir-exp-' + idx + '" style="display:none;">' +
+          '<div class="dir-info-row">' + ICONS.mail + '<div class="lines"><a class="truncate" href="mailto:' + p.email + '" title="' + p.email + '">' + p.email + '</a></div></div>' +
+          '<div class="dir-info-row">' + ICONS.link + '<div class="lines"><a href="https://' + p.website + '" target="_blank" rel="noopener">' + p.website + '</a></div></div>' +
+          '<div class="dir-info-row">' + ICONS.bank + '<div class="lines">ABN: ' + p.abn + '</div></div>' +
+          '<div class="dir-info-row">' + ICONS.clock + '<div class="lines">' + hoursHtml + '</div></div>' +
+        '</div>' +
+        '<div class="dir-info-list" style="border-top:none;padding-top:0;">' +
+          '<div class="dir-info-row">' + ICONS.briefcase + '<div class="lines">Profession: ' + p.profession + '</div></div>' +
+        '</div>' +
+        renderRegGroups(p.regGroups, idx) +
+        '<div class="dir-status-line">' + (p.ndis ? '<span class="dot-active">●</span> ' + p.status : p.status) + '</div>' +
+      '</div>'
+    );
+  }
+
+  window.dirHandleCardClick = function (e, idx) {
+    if (e.target.closest('a')) return;
+    if (e.target.closest('.show-toggle')) return;
+    dirToggleExpand(idx);
+  };
+
+  function dirToggleExpand(idx) {
+    var block = document.getElementById('dir-exp-' + idx);
+    var btn = document.getElementById('dir-exp-' + idx + '-btn');
+    var chev = document.getElementById('dir-exp-' + idx + '-chev');
+    var open = block.style.display !== 'none';
+    block.style.display = open ? 'none' : 'flex';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    btn.title = open ? 'Show more details' : 'Show less details';
+    chev.style.transform = open ? '' : 'rotate(180deg)';
+  }
+  window.dirToggleExpand = dirToggleExpand;
+
+  function applyFilters() {
+    var q = searchInput.value.trim().toLowerCase();
+    var loc = locationFilter.value;
+    var state = stateFilter.value;
+    var service = serviceFilter.value;
+    var ndisOnly = ndisFilter.checked;
+
+    var filtered = PROVIDERS.filter(function (p) {
+      if (q && !(p.name.toLowerCase().indexOf(q) > -1 || p.service.toLowerCase().indexOf(q) > -1)) return false;
+      if (loc && p.suburb !== loc) return false;
+      if (state && p.state !== state) return false;
+      if (service && p.service !== service) return false;
+      if (ndisOnly && !p.ndis) return false;
+      return true;
+    });
+
+    if (PROVIDERS.length === 0) {
+      resultsCount.innerHTML = '';
+      grid.innerHTML = '<div class="dir-empty"><div class="big">🛠️</div>' +
+        '<strong>Provider directory coming soon</strong>' +
+        '<p>We’re building out a verified directory of allied health and NDIS service providers across Logan, Brisbane and South East Queensland. Check back soon — or if you need a referral right now, get in touch and we’ll help directly.</p>' +
+        '<a class="dir-cta-btn" href="/contact/">Contact us</a>' +
+      '</div>';
+      return;
+    }
+
+    resultsCount.innerHTML = '<strong>' + filtered.length + '</strong> provider' + (filtered.length === 1 ? '' : 's') + ' found';
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div class="dir-empty"><div class="big">🔍</div><strong>No providers match those filters</strong><p>Try broadening your search or clearing a filter.</p></div>';
+      return;
+    }
+    grid.innerHTML = filtered.map(renderCard).join('');
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+  document.getElementById('dirSearchBtn').addEventListener('click', applyFilters);
+  locationFilter.addEventListener('change', applyFilters);
+  stateFilter.addEventListener('change', applyFilters);
+  serviceFilter.addEventListener('change', applyFilters);
+  ndisFilter.addEventListener('change', applyFilters);
+  document.getElementById('dirClearFilters').addEventListener('click', function () {
+    searchInput.value = ''; locationFilter.value = ''; stateFilter.value = ''; serviceFilter.value = ''; ndisFilter.checked = false;
+    applyFilters();
+  });
+
+  applyFilters();
+})();
+</script>
+{% endblock %}
