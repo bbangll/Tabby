@@ -40,6 +40,8 @@ SITE = {
     "enquire_url": "/contact/",
     "gtm_id": "GTM-NKMLMGDT",
     "year": datetime.date.today().year,
+    "supabase_url": "https://azzvzegudhdgwlrinije.supabase.co",
+    "supabase_anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6enZ6ZWd1ZGhkZ3dscmluaWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTU3OTUsImV4cCI6MjEwMjE3MTc5NX0.MZd2NFppM3KoOr3MprbABd_wZOWmwetV42bX7QKjiDY",
 }
 
 PAGE_REGISTRY = []  # populated by render(); drives sitemap.xml

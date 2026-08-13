@@ -163,6 +163,13 @@
   .dir-cta-btn{display:inline-flex;background:var(--p);color:#fff;border-radius:999px;padding:10px 22px;font-weight:700;font-size:14px;text-decoration:none;align-items:center;gap:8px;}
   .dir-cta-btn:hover{background:var(--pd);}
 
+  .dir-demo-banner{
+    background:#FFF7E6;border-bottom:2px solid #F0B429;color:#7A5B0A;
+    font-size:13.5px;font-weight:600;text-align:center;padding:10px 20px;
+  }
+  .dir-demo-banner strong{font-weight:800;}
+  .dir-loading{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--tm);font-size:14px;}
+
   @media (max-width:640px){
     .dir-search-bar{flex-direction:column;border-radius:var(--rl);padding:14px;}
     .dir-search-bar button{width:100%;}
@@ -459,7 +466,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <li><a href="/">Home</a><span class="crumb-sep" aria-hidden="true">/</span></li>
     <li><span aria-current="page">Provider Directory</span></li>
   </ol>
-</nav><section class="page-hero">
+</nav><div class="dir-demo-banner">🧪 <strong>Sample data for preview only</strong> — the providers below are fictional placeholders (names, ratings and contact details are all made up) while we build out a verified directory. None of this is real.</div>
+<section class="page-hero">
   <div class="page-hero-inner">
     <div class="page-eyebrow"><svg class="icon" aria-hidden="true"><use href="#i-list"></use></svg> Provider directory</div>
     <h1 class="page-h1">Find a trusted allied health or NDIS provider</h1>
@@ -555,9 +563,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="/static/js/main.js" defer></script>
 <script>
 (function () {
-  // No providers published yet — listings go here once verified, keeping the
-  // search/filter UI already wired up and ready.
+  var SUPABASE_URL = "https://azzvzegudhdgwlrinije.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6enZ6ZWd1ZGhkZ3dscmluaWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTU3OTUsImV4cCI6MjEwMjE3MTc5NX0.MZd2NFppM3KoOr3MprbABd_wZOWmwetV42bX7QKjiDY";
+
   var PROVIDERS = [];
+  var loaded = false;
+  var loadFailed = false;
 
   var grid = document.getElementById('dirProviderGrid');
   var resultsCount = document.getElementById('dirResultsCount');
@@ -566,6 +577,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var stateFilter = document.getElementById('dirStateFilter');
   var serviceFilter = document.getElementById('dirServiceFilter');
   var ndisFilter = document.getElementById('dirNdisFilter');
+
+  grid.innerHTML = '<div class="dir-loading">Loading providers…</div>';
 
   function unique(arr) { return arr.filter(function (v, i) { return arr.indexOf(v) === i; }); }
 
@@ -576,9 +589,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       select.appendChild(opt);
     });
   }
-  populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
-  populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
-  populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+
+  fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+  })
+    .then(function (res) { if (!res.ok) throw new Error('Supabase request failed: ' + res.status); return res.json(); })
+    .then(function (rows) {
+      PROVIDERS = rows.map(function (row) {
+        return {
+          name: row.name, service: row.service, suburb: row.suburb, state: row.state, postcode: row.postcode,
+          ndis: row.ndis, rating: Number(row.rating), reviews: row.reviews, phone: row.phone, email: row.email,
+          website: row.website, abn: row.abn, hours: row.hours || [], profession: row.profession,
+          regGroups: row.reg_groups || [], status: row.status, desc: row.description
+        };
+      });
+      loaded = true;
+      populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
+      populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
+      populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+      applyFilters();
+    })
+    .catch(function (err) {
+      console.error('Provider directory: failed to load from Supabase', err);
+      loaded = true;
+      loadFailed = true;
+      applyFilters();
+    });
 
   function starString(rating) {
     var full = Math.round(rating);
@@ -695,11 +731,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     if (PROVIDERS.length === 0) {
       resultsCount.innerHTML = '';
-      grid.innerHTML = '<div class="dir-empty"><div class="big">🛠️</div>' +
-        '<strong>Provider directory coming soon</strong>' +
-        '<p>We’re building out a verified directory of allied health and NDIS service providers across Logan, Brisbane and South East Queensland. Check back soon — or if you need a referral right now, get in touch and we’ll help directly.</p>' +
-        '<a class="dir-cta-btn" href="/contact/">Contact us</a>' +
-      '</div>';
+      grid.innerHTML = loadFailed
+        ? '<div class="dir-empty"><div class="big">⚠️</div>' +
+          '<strong>Couldn’t load the directory right now</strong>' +
+          '<p>Please try refreshing the page. If you need a referral right now, get in touch and we’ll help directly.</p>' +
+          '<a class="dir-cta-btn" href="/contact/">Contact us</a>' +
+        '</div>'
+        : '<div class="dir-empty"><div class="big">🛠️</div>' +
+          '<strong>Provider directory coming soon</strong>' +
+          '<p>We’re building out a verified directory of allied health and NDIS service providers across Logan, Brisbane and South East Queensland. Check back soon — or if you need a referral right now, get in touch and we’ll help directly.</p>' +
+          '<a class="dir-cta-btn" href="/contact/">Contact us</a>' +
+        '</div>';
       return;
     }
 
@@ -722,8 +764,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     searchInput.value = ''; locationFilter.value = ''; stateFilter.value = ''; serviceFilter.value = ''; ndisFilter.checked = false;
     applyFilters();
   });
-
-  applyFilters();
 })();
 </script>
 </body>
