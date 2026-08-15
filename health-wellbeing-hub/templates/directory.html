@@ -410,35 +410,65 @@
     full.style.display = showingFull ? 'none' : '';
   };
 
+  // Source data has no site (empty string) for many providers, and where a
+  // site exists it's inconsistently stored (some with an http(s):// prefix,
+  // most without) — normalize so the link always resolves correctly.
+  function normalizeUrl(url) {
+    if (!url) return '';
+    return /^https?:\/\//i.test(url) ? url : 'https://' + url;
+  }
+
   function renderCard(p, idx) {
     var badge = p.ndis
       ? '<span class="dir-ndis-badge">✓ NDIS Approved</span>'
       : '<span class="dir-ndis-badge not-approved">Not NDIS Registered</span>';
 
-    var hoursHtml = p.hours.map(function (h) { return h; }).join('<br>');
+    // Rating/review counts and opening hours aren't in the source data for
+    // real providers (only the old demo/placeholder rows had fake numbers) —
+    // omit those rows entirely rather than show a fabricated "0.0 (0 reviews)".
+    var ratingHtml = p.reviews > 0
+      ? '<div class="dir-rating-row"><span class="dir-stars">' + starString(p.rating) + '</span>' +
+          '<span class="dir-rating-num">' + p.rating.toFixed(1) + '</span>' +
+          '<span class="dir-review-count">(' + p.reviews + ' Google reviews)</span></div>'
+      : '';
+
+    var siteUrl = normalizeUrl(p.website);
+    var websiteRow = siteUrl
+      ? '<div class="dir-info-row">' + ICONS.link + '<div class="lines"><a class="truncate" href="' + siteUrl + '" target="_blank" rel="noopener" title="' + siteUrl + '">' + p.website + '</a></div></div>'
+      : '';
+
+    var emailRow = p.email
+      ? '<div class="dir-info-row">' + ICONS.mail + '<div class="lines"><a class="truncate" href="mailto:' + p.email + '" title="' + p.email + '">' + p.email + '</a></div></div>'
+      : '';
+
+    var hoursRow = p.hours.length
+      ? '<div class="dir-info-row">' + ICONS.clock + '<div class="lines">' + p.hours.join('<br>') + '</div></div>'
+      : '';
+
+    var hasExpandContent = !!(emailRow || websiteRow || hoursRow);
 
     return (
       '<div class="dir-card" onclick="dirHandleCardClick(event, ' + idx + ')">' +
         '<div class="dir-card-top">' +
           '<div><h3>' + p.name + '</h3><div class="dir-card-region">' + p.suburb + '</div></div>' +
-          '<button class="dir-locate-btn" id="dir-exp-' + idx + '-btn" type="button" title="Show more details" aria-expanded="false">' +
-            '<svg class="chev" id="dir-exp-' + idx + '-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>' +
-          '</button>' +
+          (hasExpandContent
+            ? '<button class="dir-locate-btn" id="dir-exp-' + idx + '-btn" type="button" title="Show more details" aria-expanded="false">' +
+                '<svg class="chev" id="dir-exp-' + idx + '-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>' +
+              '</button>'
+            : '') +
         '</div>' +
         '<div class="dir-badge-row"><span class="dir-service-tag">' + p.service + '</span>' + badge + '</div>' +
-        '<div class="dir-rating-row"><span class="dir-stars">' + starString(p.rating) + '</span>' +
-          '<span class="dir-rating-num">' + p.rating.toFixed(1) + '</span>' +
-          '<span class="dir-review-count">(' + p.reviews + ' Google reviews)</span></div>' +
+        ratingHtml +
         '<div class="dir-card-desc">' + p.desc + '</div>' +
         '<div class="dir-info-list">' +
           '<div class="dir-info-row">' + ICONS.pin + '<div class="lines">' + p.suburb + ', ' + p.state + ', ' + p.postcode + '</div></div>' +
           '<div class="dir-info-row">' + ICONS.phone + '<div class="lines">' + p.phone + '</div></div>' +
+          '<div class="dir-info-row">' + ICONS.bank + '<div class="lines">ABN: ' + p.abn + '</div></div>' +
         '</div>' +
         '<div class="dir-info-list" id="dir-exp-' + idx + '" style="display:none;">' +
-          '<div class="dir-info-row">' + ICONS.mail + '<div class="lines"><a class="truncate" href="mailto:' + p.email + '" title="' + p.email + '">' + p.email + '</a></div></div>' +
-          '<div class="dir-info-row">' + ICONS.link + '<div class="lines"><a href="https://' + p.website + '" target="_blank" rel="noopener">' + p.website + '</a></div></div>' +
-          '<div class="dir-info-row">' + ICONS.bank + '<div class="lines">ABN: ' + p.abn + '</div></div>' +
-          '<div class="dir-info-row">' + ICONS.clock + '<div class="lines">' + hoursHtml + '</div></div>' +
+          emailRow +
+          websiteRow +
+          hoursRow +
         '</div>' +
         '<div class="dir-info-list" style="border-top:none;padding-top:0;">' +
           '<div class="dir-info-row">' + ICONS.briefcase + '<div class="lines">Profession: ' + p.profession + '</div></div>' +
