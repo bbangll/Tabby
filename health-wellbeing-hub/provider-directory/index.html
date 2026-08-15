@@ -758,7 +758,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // The first page is rendered immediately via onFirstPage so the user sees
   // results right away instead of waiting for the whole table; remaining
   // pages stream in afterwards via onNextPage without disrupting the view.
-  function streamAllProviders(onFirstPage, onNextPage, onError) {
+  function streamAllProviders(onFirstPage, onNextPage, onError, onComplete) {
     var BATCH = 1000;
     function fetchPage(offset) {
       // Only ask for an exact count on the first page — it costs Postgres a
@@ -783,6 +783,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).then(function (rows) {
         (offset === 0 ? onFirstPage : onNextPage)(rows);
         if (rows.length === BATCH) fetchPage(offset + BATCH);
+        else onComplete();
       }).catch(function (err) {
         if (offset === 0) onError(err);
         else console.error('Provider directory: background page fetch failed', err);
@@ -790,6 +791,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     fetchPage(0);
   }
+
+  // Whether every page has finished streaming in from Supabase. While this is
+  // still false, reaching the end of what's currently loaded isn't the true
+  // end of the results — more is on its way, just not here yet.
+  var streamingDone = false;
 
   streamAllProviders(
     function onFirstPage(rows) {
@@ -807,13 +813,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // just extend the pool so scrolling/filtering picks up the new rows.
       currentFiltered = PROVIDERS.filter(matchesFilters);
       updateResultsCountLabel();
-      sentinel.style.display = renderedCount >= currentFiltered.length ? 'none' : '';
+      updateLoadMoreState();
+      // If the user is already sitting at the bottom waiting (sentinel was
+      // visible but nothing to load), resume now rather than waiting for
+      // another scroll/intersection event that may not come.
+      maybeLoadMore();
     },
     function onError(err) {
       console.error('Provider directory: failed to load from Supabase', err);
       loaded = true;
       loadFailed = true;
       applyFilters();
+    },
+    function onComplete() {
+      streamingDone = true;
+      updateLoadMoreState();
     }
   );
 
@@ -954,7 +968,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // just what's arrived so far. Use the upfront exact count instead so the
     // total reads correctly from the very first paint rather than climbing.
     var total = (!filtersActive() && totalCount !== null) ? totalCount : currentFiltered.length;
-    if (renderedCount >= currentFiltered.length && total <= currentFiltered.length) {
+    // Under an active filter, currentFiltered.length only reflects matches
+    // found in what's streamed in so far — more matching rows could still be
+    // in pages that haven't arrived yet, so don't call it "found" (done)
+    // until streaming has actually finished.
+    if (renderedCount >= currentFiltered.length && total <= currentFiltered.length && streamingDone) {
       resultsCount.innerHTML = '<strong>' + total + '</strong> provider' + (total === 1 ? '' : 's') + ' found';
     } else {
       resultsCount.innerHTML = 'Showing <strong>' + renderedCount + '</strong> of <strong>' + total + '</strong> providers — scroll for more';
@@ -969,7 +987,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     grid.insertAdjacentHTML('beforeend', html);
     renderedCount = end;
     updateResultsCountLabel();
-    sentinel.style.display = renderedCount >= currentFiltered.length ? 'none' : '';
+    updateLoadMoreState();
+  }
+
+  // Reaching the end of what's currently rendered doesn't always mean the end
+  // of the results — background streaming may still be a few pages behind.
+  // Without a visible cue there, the scroll just stops dead and reads as
+  // stuck rather than "more is on its way". A wrapper with display:contents
+  // lets these skeleton cards drop straight into the grid's own layout.
+  var LOADING_MORE_ID = 'dirLoadingMoreSkeletons';
+  function showLoadingMoreSkeletons() {
+    if (document.getElementById(LOADING_MORE_ID)) return;
+    var html = '<div id="' + LOADING_MORE_ID + '" style="display:contents;">' +
+      new Array(3).fill(0).map(skeletonCard).join('') + '</div>';
+    grid.insertAdjacentHTML('beforeend', html);
+  }
+  function hideLoadingMoreSkeletons() {
+    var el = document.getElementById(LOADING_MORE_ID);
+    if (el) el.remove();
+  }
+
+  function updateLoadMoreState() {
+    var caughtUp = renderedCount >= currentFiltered.length;
+    if (!caughtUp) {
+      sentinel.style.display = '';
+      hideLoadingMoreSkeletons();
+    } else if (!streamingDone) {
+      // Nothing left to render from what's loaded so far, but more pages are
+      // still streaming in — show skeletons instead of just going quiet.
+      sentinel.style.display = '';
+      showLoadingMoreSkeletons();
+    } else {
+      sentinel.style.display = 'none';
+      hideLoadingMoreSkeletons();
+    }
   }
 
   // A fast scroll (dragging the scrollbar, pressing End) can land the sentinel
