@@ -157,8 +157,18 @@
     background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:22px;
     box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;
     cursor:pointer;transition:box-shadow .18s ease,border-color .18s ease;
+    /* The grid can hold thousands of cards after extended infinite scroll.
+       content-visibility skips layout/paint for cards currently off-screen —
+       contain-intrinsic-size reserves roughly the right scroll height so the
+       scrollbar/page height don't jump around as cards enter/leave view. */
+    content-visibility:auto;contain-intrinsic-size:auto 440px;
   }
   .dir-card:hover{box-shadow:var(--sh2);border-color:var(--pl);}
+  /* Cards sliding under a stationary cursor during a fast scroll would each
+     fire :hover and re-run the box-shadow/border transition — freeze the
+     hover state to resting while actively scrolling to stop that thrashing. */
+  body.dir-is-scrolling .dir-card{transition:none;}
+  body.dir-is-scrolling .dir-card:hover{box-shadow:var(--sh);border-color:var(--b);}
   .dir-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .dir-card h3{font-family:var(--fd);font-weight:700;font-size:18px;color:var(--t);margin:0;line-height:1.3;}
   .dir-card-region{font-family:var(--fd);font-style:italic;font-size:14px;color:var(--tm);margin:2px 0 4px;}
@@ -912,11 +922,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     sentinel.style.display = renderedCount >= currentFiltered.length ? 'none' : '';
   }
 
+  // A fast scroll (dragging the scrollbar, pressing End) can land the sentinel
+  // hundreds of batches ahead of what's loaded. Left unthrottled, the observer
+  // re-fires as fast as layout allows, appending batch after batch synchronously
+  // in one burst — building thousands of cards before the browser gets a chance
+  // to paint, which is what was crashing the tab. Pacing each append with a real
+  // delay, and re-checking afterwards, spreads that work over time instead.
+  var LOAD_DELAY_MS = 80;
+  var loadScheduled = false;
+  function maybeLoadMore() {
+    if (loadScheduled || renderedCount >= currentFiltered.length) return;
+    var rect = sentinel.getBoundingClientRect();
+    if (rect.top > window.innerHeight + 300) return;
+    loadScheduled = true;
+    setTimeout(function () {
+      loadScheduled = false;
+      appendNextBatch();
+      maybeLoadMore();
+    }, LOAD_DELAY_MS);
+  }
+
+  var scrollStopTimer;
+  window.addEventListener('scroll', function () {
+    document.body.classList.add('dir-is-scrolling');
+    clearTimeout(scrollStopTimer);
+    scrollStopTimer = setTimeout(function () {
+      document.body.classList.remove('dir-is-scrolling');
+    }, 150);
+  }, { passive: true });
+
   var scrollObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting && renderedCount < currentFiltered.length) {
-        appendNextBatch();
-      }
+      if (entry.isIntersecting) maybeLoadMore();
     });
   }, { rootMargin: '300px' });
   scrollObserver.observe(sentinel);
