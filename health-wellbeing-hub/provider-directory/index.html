@@ -134,7 +134,7 @@
   .dir-filter-group select{
     font-family:var(--fb);font-size:14px;color:var(--t);background:var(--ow);
     border:1px solid var(--b);border-radius:var(--r);padding:9px 34px 9px 12px;
-    cursor:pointer;appearance:none;
+    cursor:pointer;appearance:none;color-scheme:light;
     background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%235a5a7a" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
     background-repeat:no-repeat;background-position:right 10px center;
   }
@@ -673,6 +673,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var PROVIDERS = [];
   var loaded = false;
   var loadFailed = false;
+  var totalCount = null;
 
   var PAGE_SIZE = 12;
   var currentFiltered = [];
@@ -760,14 +761,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function streamAllProviders(onFirstPage, onNextPage, onError) {
     var BATCH = 1000;
     function fetchPage(offset) {
-      fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-          Range: offset + '-' + (offset + BATCH - 1)
-        }
-      }).then(function (res) {
+      // Only ask for an exact count on the first page — it costs Postgres a
+      // real COUNT(*), so there's no point paying that on every subsequent
+      // page. The Content-Range header (e.g. "0-999/47848") gives the true
+      // total immediately, before the rest of the table has streamed in.
+      var headers = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+        Range: offset + '-' + (offset + BATCH - 1)
+      };
+      if (offset === 0) headers.Prefer = 'count=exact';
+      fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', { headers: headers })
+      .then(function (res) {
         if (!res.ok && res.status !== 206) throw new Error('Supabase request failed: ' + res.status);
+        if (offset === 0) {
+          var range = res.headers.get('content-range');
+          var total = range && parseInt(range.split('/')[1], 10);
+          if (total) totalCount = total;
+        }
         return res.json();
       }).then(function (rows) {
         (offset === 0 ? onFirstPage : onNextPage)(rows);
@@ -903,11 +914,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   window.dirToggleExpand = dirToggleExpand;
 
+  function filtersActive() {
+    return !!(searchInput.value.trim() || locationFilter.value || stateFilter.value || serviceFilter.value || ndisFilter.checked);
+  }
+
   function updateResultsCountLabel() {
-    if (renderedCount >= currentFiltered.length) {
-      resultsCount.innerHTML = '<strong>' + currentFiltered.length + '</strong> provider' + (currentFiltered.length === 1 ? '' : 's') + ' found';
+    // Once all pages have streamed in, currentFiltered.length in the unfiltered
+    // case IS the true total — but early on (only page 1 loaded so far) it's
+    // just what's arrived so far. Use the upfront exact count instead so the
+    // total reads correctly from the very first paint rather than climbing.
+    var total = (!filtersActive() && totalCount !== null) ? totalCount : currentFiltered.length;
+    if (renderedCount >= currentFiltered.length && total <= currentFiltered.length) {
+      resultsCount.innerHTML = '<strong>' + total + '</strong> provider' + (total === 1 ? '' : 's') + ' found';
     } else {
-      resultsCount.innerHTML = 'Showing <strong>' + renderedCount + '</strong> of <strong>' + currentFiltered.length + '</strong> providers — scroll for more';
+      resultsCount.innerHTML = 'Showing <strong>' + renderedCount + '</strong> of <strong>' + total + '</strong> providers — scroll for more';
     }
   }
 
