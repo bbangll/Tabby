@@ -173,11 +173,11 @@
   .dir-badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
   .dir-service-tag{
     display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:999px;
+    background:var(--pt);color:var(--pd);padding:3px 9px;border-radius:8px;
   }
   .dir-ndis-badge{
     display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
-    background:var(--gl);color:var(--g);padding:3px 9px;border-radius:999px;flex:none;white-space:nowrap;
+    background:var(--gl);color:var(--g);padding:3px 9px;border-radius:8px;flex:none;white-space:nowrap;
   }
   .dir-ndis-badge.not-approved{background:#F3EFF6;color:#8a8394;}
   .dir-rating-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
@@ -212,7 +212,21 @@
   .dir-cta-btn{display:inline-flex;background:var(--p);color:#fff;border-radius:999px;padding:10px 22px;font-weight:700;font-size:14px;text-decoration:none;align-items:center;gap:8px;}
   .dir-cta-btn:hover{background:var(--pd);}
 
-  .dir-loading{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--tm);font-size:14px;}
+  .dir-skel{pointer-events:none;}
+  .dir-skel-line{
+    height:12px;border-radius:5px;background:linear-gradient(90deg,var(--ow) 25%,var(--b) 37%,var(--ow) 63%);
+    background-size:400% 100%;animation:dir-shimmer 1.4s ease infinite;
+  }
+  @keyframes dir-shimmer{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+  .dir-skel .dir-skel-line.title{height:16px;width:70%;margin-bottom:8px;}
+  .dir-skel .dir-skel-line.region{height:11px;width:40%;margin-bottom:12px;}
+  .dir-skel .dir-skel-badges{display:flex;gap:8px;margin-bottom:14px;}
+  .dir-skel .dir-skel-badges .dir-skel-line{height:20px;width:88px;border-radius:999px;}
+  .dir-skel .dir-skel-line.desc{width:100%;margin-bottom:6px;}
+  .dir-skel .dir-skel-line.desc.short{width:75%;margin-bottom:14px;}
+  .dir-skel .dir-skel-row{display:flex;gap:11px;align-items:center;padding-top:10px;border-top:1px solid var(--b);margin-top:4px;}
+  .dir-skel .dir-skel-row .dot{flex:none;width:18px;height:18px;border-radius:5px;background:var(--ow);}
+  .dir-skel .dir-skel-row .dir-skel-line{flex:1;height:11px;}
   .dir-scroll-sentinel{height:1px;}
 
   @media (max-width:640px){
@@ -663,27 +677,80 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var serviceFilter = document.getElementById('dirServiceFilter');
   var ndisFilter = document.getElementById('dirNdisFilter');
 
-  grid.innerHTML = '<div class="dir-loading">Loading providers…</div>';
+  function skeletonCard() {
+    return (
+      '<div class="dir-card dir-skel">' +
+        '<div class="dir-skel-line title"></div>' +
+        '<div class="dir-skel-line region"></div>' +
+        '<div class="dir-skel-badges"><div class="dir-skel-line"></div><div class="dir-skel-line"></div></div>' +
+        '<div class="dir-skel-line desc"></div>' +
+        '<div class="dir-skel-line desc short"></div>' +
+        '<div class="dir-skel-row"><div class="dot"></div><div class="dir-skel-line"></div></div>' +
+        '<div class="dir-skel-row"><div class="dot"></div><div class="dir-skel-line"></div></div>' +
+      '</div>'
+    );
+  }
+
+  grid.innerHTML = new Array(9).fill(0).map(skeletonCard).join('');
 
   function unique(arr) { return arr.filter(function (v, i) { return arr.indexOf(v) === i; }); }
 
+  // Idempotent/re-runnable: clears and rebuilds options each call (rather than
+  // just appending) so it can be called again as more data streams in without
+  // creating duplicate <option> entries, while preserving the user's current pick.
   function populateSelect(select, values) {
+    var current = select.value;
+    while (select.options.length > 1) select.remove(1);
     unique(values).sort().forEach(function (v) {
       var opt = document.createElement('option');
       opt.value = v; opt.textContent = v;
       select.appendChild(opt);
     });
+    select.value = current;
   }
 
-  // Fetches every row regardless of table size — pages through in batches of
-  // 1000 via PostgREST's Range header rather than trusting a single request
-  // to return everything, since Supabase caps unranged requests at its
-  // configured max-rows (commonly 1000).
-  function fetchAllProviders() {
+  function mapRow(row) {
+    return {
+      name: row.name, service: row.service, suburb: row.suburb, state: row.state, postcode: row.postcode,
+      ndis: row.ndis, rating: Number(row.rating), reviews: row.reviews, phone: row.phone, email: row.email,
+      website: row.website, abn: row.abn, hours: row.hours || [], profession: row.profession,
+      regGroups: row.reg_groups || [], status: row.status, desc: row.description
+    };
+  }
+
+  function refreshFilterOptions() {
+    populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
+    populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
+    populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+  }
+
+  // Background pages arrive in rapid succession (dozens over a few seconds),
+  // and rebuilding a <select>'s options while its native dropdown is open
+  // renders as a blank/black box mid-list. Debounce so the rebuild only runs
+  // once activity settles, and defer again if a filter dropdown is currently
+  // focused (a reasonable proxy for "the user has it open right now").
+  var filterOptionsRefreshTimer = null;
+  function scheduleFilterOptionsRefresh() {
+    clearTimeout(filterOptionsRefreshTimer);
+    filterOptionsRefreshTimer = setTimeout(function () {
+      var active = document.activeElement;
+      if (active === locationFilter || active === stateFilter || active === serviceFilter) {
+        scheduleFilterOptionsRefresh();
+        return;
+      }
+      refreshFilterOptions();
+    }, 500);
+  }
+
+  // Fetches providers a page (1000 rows) at a time via PostgREST's Range
+  // header, since Supabase caps unranged requests at its configured max-rows.
+  // The first page is rendered immediately via onFirstPage so the user sees
+  // results right away instead of waiting for the whole table; remaining
+  // pages stream in afterwards via onNextPage without disrupting the view.
+  function streamAllProviders(onFirstPage, onNextPage, onError) {
     var BATCH = 1000;
-    var all = [];
     function fetchPage(offset) {
-      return fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
+      fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', {
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
@@ -693,35 +760,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if (!res.ok && res.status !== 206) throw new Error('Supabase request failed: ' + res.status);
         return res.json();
       }).then(function (rows) {
-        all = all.concat(rows);
-        return rows.length === BATCH ? fetchPage(offset + BATCH) : all;
+        (offset === 0 ? onFirstPage : onNextPage)(rows);
+        if (rows.length === BATCH) fetchPage(offset + BATCH);
+      }).catch(function (err) {
+        if (offset === 0) onError(err);
+        else console.error('Provider directory: background page fetch failed', err);
       });
     }
-    return fetchPage(0);
+    fetchPage(0);
   }
 
-  fetchAllProviders()
-    .then(function (rows) {
-      PROVIDERS = rows.map(function (row) {
-        return {
-          name: row.name, service: row.service, suburb: row.suburb, state: row.state, postcode: row.postcode,
-          ndis: row.ndis, rating: Number(row.rating), reviews: row.reviews, phone: row.phone, email: row.email,
-          website: row.website, abn: row.abn, hours: row.hours || [], profession: row.profession,
-          regGroups: row.reg_groups || [], status: row.status, desc: row.description
-        };
-      });
+  streamAllProviders(
+    function onFirstPage(rows) {
+      PROVIDERS = rows.map(mapRow);
       loaded = true;
-      populateSelect(locationFilter, PROVIDERS.map(function (p) { return p.suburb; }));
-      populateSelect(stateFilter, PROVIDERS.map(function (p) { return p.state; }));
-      populateSelect(serviceFilter, PROVIDERS.map(function (p) { return p.service; }));
+      refreshFilterOptions();
       applyFilters();
-    })
-    .catch(function (err) {
+    },
+    function onNextPage(rows) {
+      PROVIDERS = PROVIDERS.concat(rows.map(mapRow));
+      scheduleFilterOptionsRefresh();
+      // Re-run the same filter predicate rather than a full applyFilters(): since
+      // new rows only ever land at the end of PROVIDERS, the already-rendered
+      // prefix of currentFiltered is unchanged, so the grid doesn't need a redraw —
+      // just extend the pool so scrolling/filtering picks up the new rows.
+      currentFiltered = PROVIDERS.filter(matchesFilters);
+      updateResultsCountLabel();
+      sentinel.style.display = renderedCount >= currentFiltered.length ? 'none' : '';
+    },
+    function onError(err) {
       console.error('Provider directory: failed to load from Supabase', err);
       loaded = true;
       loadFailed = true;
       applyFilters();
-    });
+    }
+  );
 
   function starString(rating) {
     var full = Math.round(rating);
@@ -848,21 +921,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }, { rootMargin: '300px' });
   scrollObserver.observe(sentinel);
 
-  function applyFilters() {
+  // Shared with the background page-merge handler above, so newly streamed-in
+  // rows are matched against exactly the same criteria as the visible grid.
+  function matchesFilters(p) {
     var q = searchInput.value.trim().toLowerCase();
     var loc = locationFilter.value;
     var state = stateFilter.value;
     var service = serviceFilter.value;
     var ndisOnly = ndisFilter.checked;
 
-    currentFiltered = PROVIDERS.filter(function (p) {
-      if (q && !(p.name.toLowerCase().indexOf(q) > -1 || p.service.toLowerCase().indexOf(q) > -1)) return false;
-      if (loc && p.suburb !== loc) return false;
-      if (state && p.state !== state) return false;
-      if (service && p.service !== service) return false;
-      if (ndisOnly && !p.ndis) return false;
-      return true;
-    });
+    if (q && !(p.name.toLowerCase().indexOf(q) > -1 || p.service.toLowerCase().indexOf(q) > -1)) return false;
+    if (loc && p.suburb !== loc) return false;
+    if (state && p.state !== state) return false;
+    if (service && p.service !== service) return false;
+    if (ndisOnly && !p.ndis) return false;
+    return true;
+  }
+
+  function applyFilters() {
+    currentFiltered = PROVIDERS.filter(matchesFilters);
     renderedCount = 0;
 
     if (PROVIDERS.length === 0) {
