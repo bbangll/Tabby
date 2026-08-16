@@ -536,6 +536,28 @@
     }
   }
 
+  // A CSS Grid has to re-run its placement algorithm across every child
+  // whenever one is added — not just the new one — so as the grid keeps
+  // growing over a long scroll session, each further append gets more
+  // expensive. content-visibility keeps offscreen cards cheap to *paint*,
+  // but doesn't stop that placement recompute. Capping how many cards stay
+  // in the DOM at once is what actually bounds it. Only cards comfortably
+  // above the current viewport are removed, relying on the browser's
+  // built-in scroll anchoring (on by default) to keep the visible content
+  // from jumping when they go.
+  var MAX_RENDERED = 150;
+  function pruneOffscreenCards() {
+    var loadingMore = document.getElementById(LOADING_MORE_ID);
+    var realCount = grid.children.length - (loadingMore ? 1 : 0);
+    var excess = realCount - MAX_RENDERED;
+    for (var i = 0; i < excess; i++) {
+      var first = grid.firstElementChild;
+      if (!first || first === loadingMore) break;
+      if (first.getBoundingClientRect().bottom > -200) break;
+      grid.removeChild(first);
+    }
+  }
+
   function appendNextBatch() {
     var start = renderedCount;
     var end = Math.min(start + PAGE_SIZE, currentFiltered.length);
@@ -543,6 +565,7 @@
     for (var i = start; i < end; i++) { html += renderCard(currentFiltered[i], i); }
     grid.insertAdjacentHTML('beforeend', html);
     renderedCount = end;
+    pruneOffscreenCards();
     updateResultsCountLabel();
     updateLoadMoreState();
   }
