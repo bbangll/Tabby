@@ -559,6 +559,11 @@
   }
 
   function appendNextBatch() {
+    // The loading-more skeleton (if showing) is always the last grid child —
+    // strip it before appending real cards so they don't end up inserted
+    // after it. updateLoadMoreState() re-adds it at the new true end below
+    // if it's still needed.
+    hideLoadingMoreSkeletons();
     var start = renderedCount;
     var end = Math.min(start + PAGE_SIZE, currentFiltered.length);
     var html = '';
@@ -570,16 +575,18 @@
     updateLoadMoreState();
   }
 
-  // Reaching the end of what's currently rendered doesn't always mean the end
-  // of the results — background streaming may still be a few pages behind.
-  // Without a visible cue there, the scroll just stops dead and reads as
-  // stuck rather than "more is on its way". A wrapper with display:contents
-  // lets these skeleton cards drop straight into the grid's own layout.
+  // Shown any time a batch is pending — either the deliberate pacing delay
+  // below, or a genuine wait on background streaming. A big, obvious block
+  // (rather than a token few cards) reads clearly as "loading", which is
+  // also exactly what naturally keeps a user from scrolling ahead of it.
+  // A wrapper with display:contents lets these skeleton cards drop straight
+  // into the grid's own layout.
   var LOADING_MORE_ID = 'dirLoadingMoreSkeletons';
+  var LOADING_MORE_COUNT = 28;
   function showLoadingMoreSkeletons() {
     if (document.getElementById(LOADING_MORE_ID)) return;
     var html = '<div id="' + LOADING_MORE_ID + '" style="display:contents;">' +
-      new Array(3).fill(0).map(skeletonCard).join('') + '</div>';
+      new Array(LOADING_MORE_COUNT).fill(0).map(skeletonCard).join('') + '</div>';
     grid.insertAdjacentHTML('beforeend', html);
   }
   function hideLoadingMoreSkeletons() {
@@ -589,16 +596,19 @@
 
   function updateLoadMoreState() {
     var caughtUp = renderedCount >= currentFiltered.length;
-    if (!caughtUp) {
-      sentinel.style.display = '';
-      hideLoadingMoreSkeletons();
-    } else if (!streamingDone) {
-      // Nothing left to render from what's loaded so far, but more pages are
-      // still streaming in — show skeletons instead of just going quiet.
+    // Waiting on data covers two different waits the same way: the deliberate
+    // pacing delay between batches (loadScheduled) and a genuine wait on
+    // background streaming (caught up but !streamingDone) — both get the
+    // same "more is loading" cue rather than one of them going silent.
+    var waitingOnData = loadScheduled || (caughtUp && !streamingDone);
+    if (waitingOnData) {
       sentinel.style.display = '';
       showLoadingMoreSkeletons();
-    } else {
+    } else if (caughtUp) {
       sentinel.style.display = 'none';
+      hideLoadingMoreSkeletons();
+    } else {
+      sentinel.style.display = '';
       hideLoadingMoreSkeletons();
     }
   }
@@ -616,6 +626,7 @@
     var rect = sentinel.getBoundingClientRect();
     if (rect.top > window.innerHeight + 300) return;
     loadScheduled = true;
+    updateLoadMoreState();
     setTimeout(function () {
       loadScheduled = false;
       appendNextBatch();
