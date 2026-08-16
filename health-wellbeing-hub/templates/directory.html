@@ -144,7 +144,10 @@
     .dir-search-bar{border-radius:999px;padding:6px 6px 6px 16px;}
     .dir-search-bar input{font-size:14px;}
     .dir-search-bar button{padding:12px 18px;}
-    .dir-clear-filters{margin-left:0;}
+    .dir-filters-row{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+    .dir-filter-group select{width:100%;}
+    .dir-toggle-group{padding-top:0;align-self:center;}
+    .dir-clear-filters{grid-column:1/-1;margin-left:0;}
   }
 </style>
 {% endblock %}
