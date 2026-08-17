@@ -722,7 +722,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   var PAGE_SIZE = 12;
   var currentFiltered = [];
+  // domFirst/renderedCount bound the sliding window of cards currently in the
+  // DOM (as currentFiltered indices: [domFirst, renderedCount)). Both move in
+  // either direction — appending forward can push renderedCount up and prune
+  // from the front (domFirst up); prepending backward can push domFirst down
+  // and prune from the back (renderedCount down). Data outside the window was
+  // rendered once already and then pruned, not lost — it's still sitting in
+  // currentFiltered, so scrolling back re-renders it from there rather than
+  // needing to re-fetch anything.
   var renderedCount = 0;
+  var domFirst = 0;
+  // Unlike renderedCount, this only ever grows: the furthest index ever
+  // rendered, regardless of how much has since been pruned off the back by
+  // scrolling up. Drives the "Showing X of Y" label and the "all found"
+  // check, so neither one appears to go backwards just because the DOM
+  // window slid back toward the top.
+  var maxRenderedIndex = 0;
 
   var grid = document.getElementById('dirProviderGrid');
   var sentinel = document.getElementById('dirLoadSentinel');
@@ -1092,10 +1107,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // found in what's streamed in so far — more matching rows could still be
     // in pages that haven't arrived yet, so don't call it "found" (done)
     // until streaming has actually finished.
-    if (renderedCount >= currentFiltered.length && total <= currentFiltered.length && streamingDone) {
+    if (maxRenderedIndex >= currentFiltered.length && total <= currentFiltered.length && streamingDone) {
       resultsCount.innerHTML = '<strong>' + total + '</strong> provider' + (total === 1 ? '' : 's') + ' found';
     } else {
-      resultsCount.innerHTML = 'Showing <strong>' + renderedCount + '</strong> of <strong>' + total + '</strong> providers — scroll for more';
+      resultsCount.innerHTML = 'Showing <strong>' + maxRenderedIndex + '</strong> of <strong>' + total + '</strong> providers — scroll for more';
     }
   }
 
@@ -1109,27 +1124,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // built-in scroll anchoring (on by default) to keep the visible content
   // from jumping when they go.
   // A CSS Grid relayout still costs something even bounded — it's proportional
-  // to total grid children on every insertion, capped or not. 36 (3 batches)
-  // is still a couple of screens of buffer on any real viewport, measured
-  // against real per-insertion relayout cost under CPU throttling (a fast
-  // sandbox Chromium's "0 long tasks" doesn't reflect real hardware — see
-  // LOAD_DELAY_MS below) until it stopped showing up as dropped frames.
-  var MAX_RENDERED = 36;
-  function pruneOffscreenCards() {
-    // getBoundingClientRect() forces a synchronous layout reflow whenever
-    // layout is already dirty from a DOM mutation — which it always is here,
-    // right after insertAdjacentHTML. Querying it in a loop, on every paced
-    // tick for as long as a fast scroll continues, was itself a real cost at
-    // the real card weight/count. MAX_RENDERED is a generous multi-screen
-    // buffer, so trust it instead of verifying each card's exact position —
-    // there's no layout read left in this path at all now. The loading-more
-    // bar lives outside the grid entirely, so every grid child here is a
-    // real provider card — no exclusion needed.
-    var excess = grid.children.length - MAX_RENDERED;
+  // to total grid children on every insertion, capped or not — so this wants
+  // to stay as small as the rest of the experience allows. But now that
+  // scrolling back up re-renders pruned cards (see prependPreviousBatch),
+  // too small a buffer means an ordinary bit of up/down browsing keeps
+  // running into the edge of what's currently loaded and re-triggering a
+  // render on every reversal. 60 (5 batches) measured out as enough runway
+  // to absorb realistic back-and-forth without constantly touching either
+  // edge, without giving back the forward-scroll cost this was tuned down
+  // for in the first place.
+  var MAX_RENDERED = 60;
+  // getBoundingClientRect() forces a synchronous layout reflow whenever
+  // layout is already dirty from a DOM mutation — which it always is here,
+  // right after insertAdjacentHTML. Querying it in a loop, on every paced
+  // tick for as long as a fast scroll continues, was itself a real cost at
+  // the real card weight/count. MAX_RENDERED is a generous multi-screen
+  // buffer, so trust it instead of verifying each card's exact position —
+  // there's no layout read left in this path at all now. The loading-more
+  // bar lives outside the grid entirely, so every grid child here is a
+  // real provider card — no exclusion needed.
+  function pruneFromFront(excess) {
     for (var i = 0; i < excess; i++) {
       var first = grid.firstElementChild;
       if (!first) break;
       grid.removeChild(first);
+      domFirst++;
+    }
+  }
+  function pruneFromBack(excess) {
+    for (var i = 0; i < excess; i++) {
+      var last = grid.lastElementChild;
+      if (!last) break;
+      grid.removeChild(last);
+      renderedCount--;
     }
   }
 
@@ -1140,7 +1167,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     for (var i = start; i < end; i++) { html += renderCard(currentFiltered[i], i); }
     grid.insertAdjacentHTML('beforeend', html);
     renderedCount = end;
-    pruneOffscreenCards();
+    maxRenderedIndex = Math.max(maxRenderedIndex, renderedCount);
+    pruneFromFront(grid.children.length - MAX_RENDERED);
+    updateResultsCountLabel();
+    updateLoadMoreState();
+  }
+
+  // The forward-only counterpart above: scrolling back up past whatever's
+  // currently the first rendered card re-renders earlier cards from
+  // currentFiltered (already in memory — nothing to fetch, they were loaded
+  // once already before being pruned) and, if that pushes the DOM over the
+  // cap, prunes from the far (bottom) end instead. This is what makes cards
+  // that scrolled out of view up top reappear rather than staying gone.
+  function prependPreviousBatch() {
+    var end = domFirst;
+    var start = Math.max(0, end - PAGE_SIZE);
+    if (start === end) return;
+    var html = '';
+    for (var i = start; i < end; i++) { html += renderCard(currentFiltered[i], i); }
+    grid.insertAdjacentHTML('afterbegin', html);
+    domFirst = start;
+    pruneFromBack(grid.children.length - MAX_RENDERED);
     updateResultsCountLabel();
     updateLoadMoreState();
   }
@@ -1204,6 +1251,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }, LOAD_DELAY_MS);
   }
 
+  // Mirrors maybeLoadMore() for the reverse direction: re-renders earlier,
+  // already-pruned cards as the user scrolls back up. Shares the same
+  // loadScheduled flag — only one direction ever mutates the DOM at a time,
+  // which is fine since a user is only ever scrolling one way at once, and
+  // keeps this from racing appendNextBatch() at the other end.
+  //
+  // Deliberately does NOT call maybeLoadMore() (or vice versa) on completion.
+  // nearTop/sentinelNearViewport are only refreshed by an actual scroll
+  // event — if the loaded window is short enough to be within both margins
+  // at once, cross-calling the other direction here would let two stale
+  // "yes, still near that edge" flags keep re-triggering each other forever,
+  // alternately appending and prepending with no further real scrolling
+  // needed to keep it going. Each direction only continues itself.
+  function maybeLoadPrevious() {
+    if (loadScheduled || domFirst <= 0) return;
+    if (!nearTop) return;
+    loadScheduled = true;
+    setTimeout(function () {
+      loadScheduled = false;
+      prependPreviousBatch();
+      maybeLoadPrevious();
+    }, LOAD_DELAY_MS);
+  }
+
   // A big scroll jump (trackpad flick, dragging the scrollbar) can carry the
   // viewport clean over the sentinel within a single tick — it registers as
   // entering *and* leaving the observer's margin back-to-back, before a load
@@ -1212,17 +1283,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // just stops dead wherever that jump landed, which reads as a freeze even
   // though nothing is slow. Checking scroll distance to the bottom directly
   // closes that gap — it fires off actual scroll position, not off crossing
-  // an element's edge, so it can't be jumped over the same way.
+  // an element's edge, so it can't be jumped over the same way. The same
+  // logic runs for the top edge, driving maybeLoadPrevious() the same way.
   var scrollCheckScheduled = false;
-  function checkNearBottom() {
+  var nearTop = false;
+  // The grid's document-relative top never moves once set — nothing above
+  // it changes size as cards are pruned/rendered — so this is measured once
+  // (on first use) rather than read on every scroll frame, which would force
+  // a synchronous layout the same way the removed getBoundingClientRect()
+  // calls elsewhere in this file used to.
+  var gridTopOffset = null;
+  function checkScrollProximity() {
     scrollCheckScheduled = false;
+    if (gridTopOffset === null) gridTopOffset = grid.getBoundingClientRect().top + window.scrollY;
     var doc = document.documentElement;
     var nearBottom = (window.scrollY + window.innerHeight) >= (doc.scrollHeight - 800);
+    nearTop = window.scrollY <= (gridTopOffset + 800);
     if (nearBottom) {
       sentinelNearViewport = true;
       maybeLoadMore();
     }
+    if (nearTop) maybeLoadPrevious();
   }
+  window.addEventListener('resize', function () { gridTopOffset = null; });
 
   var scrollStopTimer;
   window.addEventListener('scroll', function () {
@@ -1235,7 +1318,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // fire in between, and only while a scroll gesture is actually happening.
     if (!scrollCheckScheduled) {
       scrollCheckScheduled = true;
-      requestAnimationFrame(checkNearBottom);
+      requestAnimationFrame(checkScrollProximity);
     }
   }, { passive: true });
 
@@ -1276,6 +1359,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function applyFilters() {
     recomputeCurrentFiltered();
     renderedCount = 0;
+    domFirst = 0;
+    maxRenderedIndex = 0;
 
     if (PROVIDERS.length === 0) {
       resultsCount.innerHTML = '';
