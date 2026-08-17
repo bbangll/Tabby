@@ -408,19 +408,25 @@
     briefcase: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'
   };
 
+  // The full list (often 15-20 registration groups) used to be built and
+  // inserted for every card regardless of whether "show all" was ever
+  // clicked, just hidden with display:none — real weight added to every
+  // single card's HTML for something most cards never need. Build it lazily
+  // on first click instead, reading straight from currentFiltered (safe:
+  // rows only ever append, and a filter change clears and re-renders the
+  // grid before idx could point at a different item).
   function renderRegGroups(groups, idx) {
     if (!groups.length) return '<div class="dir-reg-groups"><span class="lbl">Registration Group:</span> None</div>';
-    var shortList = groups.slice(0, 1).join(', ') + (groups.length > 1 ? '…' : '');
-    var fullList = groups.join(', ');
     var id = 'dir-reg-' + idx;
     if (groups.length <= 1) {
-      return '<div class="dir-reg-groups"><span class="lbl">Registration Group:</span><br>' + fullList + '</div>';
+      return '<div class="dir-reg-groups"><span class="lbl">Registration Group:</span><br>' + groups[0] + '</div>';
     }
+    var shortList = groups[0] + '…';
     return (
       '<div class="dir-reg-groups">' +
         '<span class="lbl">Registration Group:</span><br>' +
         '<span id="' + id + '-short">' + shortList + '<button class="show-toggle" onclick="dirToggleReg(' + idx + ')">show all</button></span>' +
-        '<span id="' + id + '-full" style="display:none;">' + fullList + ' <button class="show-toggle" onclick="dirToggleReg(' + idx + ')">show less</button></span>' +
+        '<span id="' + id + '-full" style="display:none;"></span>' +
       '</div>'
     );
   }
@@ -429,6 +435,11 @@
     var short = document.getElementById('dir-reg-' + idx + '-short');
     var full = document.getElementById('dir-reg-' + idx + '-full');
     var showingFull = full.style.display !== 'none';
+    if (!showingFull && !full.dataset.built) {
+      full.innerHTML = currentFiltered[idx].regGroups.join(', ') +
+        ' <button class="show-toggle" onclick="dirToggleReg(' + idx + ')">show less</button>';
+      full.dataset.built = '1';
+    }
     short.style.display = showingFull ? '' : 'none';
     full.style.display = showingFull ? 'none' : '';
   };
@@ -556,13 +567,19 @@
   // from jumping when they go.
   var MAX_RENDERED = 150;
   function pruneOffscreenCards() {
+    // getBoundingClientRect() forces a synchronous layout reflow whenever
+    // layout is already dirty from a DOM mutation — which it always is here,
+    // right after insertAdjacentHTML. Querying it in a loop, on every paced
+    // tick for as long as a fast scroll continues, was itself a real cost at
+    // the real card weight/count. MAX_RENDERED is a generous multi-screen
+    // buffer, so trust it instead of verifying each card's exact position —
+    // there's no layout read left in this path at all now.
     var loadingMore = document.getElementById(LOADING_MORE_ID);
     var realCount = grid.children.length - (loadingMore ? 1 : 0);
     var excess = realCount - MAX_RENDERED;
     for (var i = 0; i < excess; i++) {
       var first = grid.firstElementChild;
       if (!first || first === loadingMore) break;
-      if (first.getBoundingClientRect().bottom > -200) break;
       grid.removeChild(first);
     }
   }
