@@ -52,11 +52,26 @@
 
   .dir-wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
   .dir-main-wrap{max-width:1180px;margin:0 auto;padding:24px 24px 64px;}
-  .dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:14px;}
+  /* Flexbox-wrap instead of CSS Grid: Grid's placement algorithm has to
+     reconsider every item in the container on every insertion or removal,
+     which is what kept showing up as dropped frames right after each
+     infinite-scroll batch, no matter how small MAX_RENDERED was trimmed to.
+     A trailing append onto a wrapped flex row is a much more local, cheaper
+     recalculation for the browser than Grid's full placement pass. */
+  .dir-grid{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;}
+  .dir-grid > .dir-card{flex:1 1 300px;max-width:calc(33.333% - 12px);}
+  @media (max-width:960px){.dir-grid > .dir-card{max-width:calc(50% - 9px);}}
+  @media (max-width:640px){.dir-grid > .dir-card{max-width:100%;}}
 
   .dir-card{
     background:var(--w);border:1px solid var(--b);border-radius:var(--rl);padding:22px;
-    box-shadow:var(--sh);display:flex;flex-direction:column;gap:4px;
+    /* The site-wide --sh shadow has a 20px blur radius, which is one of the
+       more expensive things a browser can paint, repeated across dozens of
+       cards compositing in and out on every scroll frame. The border already
+       does the job of separating cards from the page background, so resting
+       state skips the shadow — .dir-card:hover below still gets one, but
+       that's at most a couple of elements at a time, not the whole screen. */
+    display:flex;flex-direction:column;gap:4px;
     cursor:pointer;transition:box-shadow .18s ease,border-color .18s ease;
     /* The grid can hold thousands of cards after extended infinite scroll.
        content-visibility skips layout/paint for cards currently off-screen —
@@ -69,7 +84,7 @@
      fire :hover and re-run the box-shadow/border transition — freeze the
      hover state to resting while actively scrolling to stop that thrashing. */
   body.dir-is-scrolling .dir-card{transition:none;}
-  body.dir-is-scrolling .dir-card:hover{box-shadow:var(--sh);border-color:var(--b);}
+  body.dir-is-scrolling .dir-card:hover{box-shadow:none;border-color:var(--b);}
   .dir-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .dir-card h3{font-family:var(--fd);font-weight:700;font-size:18px;color:var(--t);margin:0;line-height:1.3;}
   .dir-card-region{font-family:var(--fd);font-style:italic;font-size:14px;color:var(--tm);margin:2px 0 4px;}
