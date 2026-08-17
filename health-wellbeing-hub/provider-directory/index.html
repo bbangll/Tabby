@@ -951,8 +951,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   };
 
   function dirToggleExpand(idx) {
-    var block = document.getElementById('dir-exp-' + idx);
     var btn = document.getElementById('dir-exp-' + idx + '-btn');
+    // Cards with no email/website/hours don't render the expand button at
+    // all (nothing to show), but the click handler covers the whole card —
+    // clicking anywhere on one of those cards must no-op, not throw.
+    if (!btn) return;
+    var block = document.getElementById('dir-exp-' + idx);
     var chev = document.getElementById('dir-exp-' + idx + '-chev');
     var open = block.style.display !== 'none';
     block.style.display = open ? 'none' : 'flex';
