@@ -581,7 +581,11 @@
   // above the current viewport are removed, relying on the browser's
   // built-in scroll anchoring (on by default) to keep the visible content
   // from jumping when they go.
-  var MAX_RENDERED = 150;
+  // A CSS Grid relayout still costs something even bounded — it's proportional
+  // to total grid children on every insertion, capped or not. 96 (8 batches)
+  // is still several screens of buffer on any real viewport, but noticeably
+  // lighter per-insertion than a larger cap during sustained fast scrolling.
+  var MAX_RENDERED = 96;
   function pruneOffscreenCards() {
     // getBoundingClientRect() forces a synchronous layout reflow whenever
     // layout is already dirty from a DOM mutation — which it always is here,
@@ -663,10 +667,17 @@
   // delay, and re-checking afterwards, spreads that work over time instead.
   var LOAD_DELAY_MS = 80;
   var loadScheduled = false;
+  // Set from the IntersectionObserver callback below — IntersectionObserver
+  // computes intersection off the main thread's synchronous layout path, so
+  // reading its last-reported state here costs nothing extra. Calling
+  // sentinel.getBoundingClientRect() directly used to do this instead, which
+  // forces a synchronous layout reflow on every single call — and this runs
+  // on every paced tick for as long as a fast scroll continues, so that
+  // added up to real, repeated cost during sustained fast scrolling.
+  var sentinelNearViewport = false;
   function maybeLoadMore() {
     if (loadScheduled || renderedCount >= currentFiltered.length) return;
-    var rect = sentinel.getBoundingClientRect();
-    if (rect.top > window.innerHeight + 300) return;
+    if (!sentinelNearViewport) return;
     loadScheduled = true;
     updateLoadMoreState();
     setTimeout(function () {
@@ -687,6 +698,7 @@
 
   var scrollObserver = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
+      sentinelNearViewport = entry.isIntersecting;
       if (entry.isIntersecting) maybeLoadMore();
     });
   }, { rootMargin: '300px' });
