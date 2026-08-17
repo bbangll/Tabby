@@ -364,11 +364,16 @@
     function onNextPage(rows) {
       PROVIDERS = PROVIDERS.concat(rows.map(mapRow));
       scheduleFilterOptionsRefresh();
-      // Re-run the same filter predicate rather than a full applyFilters(): since
+      // Re-derive the filtered pool rather than a full applyFilters(): since
       // new rows only ever land at the end of PROVIDERS, the already-rendered
       // prefix of currentFiltered is unchanged, so the grid doesn't need a redraw —
       // just extend the pool so scrolling/filtering picks up the new rows.
-      currentFiltered = PROVIDERS.filter(matchesFilters);
+      // recomputeCurrentFiltered() skips the actual .filter() pass entirely
+      // when unfiltered (every row trivially matches), which matters a lot
+      // here: this runs on every one of the ~48 background pages during
+      // initial load, over an array growing up to 47,848 items — a real
+      // filter() each time was the main source of "laggy at first load".
+      recomputeCurrentFiltered();
       updateResultsCountLabel();
       updateLoadMoreState();
       // If the user is already sitting at the bottom waiting (sentinel was
@@ -671,8 +676,17 @@
     return true;
   }
 
+  // With no filter active, every row trivially matches matchesFilters, so
+  // filtering is just an expensive way to copy the array. Skip straight to
+  // a reference in that case — this path runs on every background page
+  // during initial load (see onNextPage), where PROVIDERS can be tens of
+  // thousands of rows long by the last page.
+  function recomputeCurrentFiltered() {
+    currentFiltered = filtersActive() ? PROVIDERS.filter(matchesFilters) : PROVIDERS;
+  }
+
   function applyFilters() {
-    currentFiltered = PROVIDERS.filter(matchesFilters);
+    recomputeCurrentFiltered();
     renderedCount = 0;
 
     if (PROVIDERS.length === 0) {
