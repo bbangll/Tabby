@@ -73,10 +73,14 @@
        that's at most a couple of elements at a time, not the whole screen. */
     display:flex;flex-direction:column;gap:4px;
     cursor:pointer;transition:box-shadow .18s ease,border-color .18s ease;
-    /* The grid can hold thousands of cards after extended infinite scroll.
-       content-visibility skips layout/paint for cards currently off-screen —
-       contain-intrinsic-size reserves roughly the right scroll height so the
-       scrollbar/page height don't jump around as cards enter/leave view. */
+    /* Tried removing this: it clearly helped scroll direction changes
+       (content-visibility discards a card's layout the moment it scrolls
+       out of view, so re-entering it — which happens on every up/down
+       reversal — redoes that layout from scratch) but just as clearly hurt
+       plain forward scrolling, which is the more common case for an
+       infinite-scroll list — with this off, every appended card gets
+       painted continuously even while it's still below the fold and hasn't
+       been scrolled to yet. Kept on for the more common case. */
     content-visibility:auto;contain-intrinsic-size:auto 440px;
   }
   .dir-card:hover{box-shadow:var(--sh2);border-color:var(--pl);}
@@ -354,36 +358,84 @@
   // pages stream in afterwards via onNextPage without disrupting the view.
   function streamAllProviders(onFirstPage, onNextPage, onError, onComplete) {
     var BATCH = 1000;
-    function fetchPage(offset) {
-      // Only ask for an exact count on the first page — it costs Postgres a
-      // real COUNT(*), so there's no point paying that on every subsequent
-      // page. The Content-Range header (e.g. "0-999/47848") gives the true
-      // total immediately, before the rest of the table has streamed in.
+    var CONCURRENCY = 4;
+
+    function fetchOnePage(offset) {
       var headers = {
         apikey: SUPABASE_ANON_KEY,
         Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
         Range: offset + '-' + (offset + BATCH - 1)
       };
+      // Only ask for an exact count on the first page — it costs Postgres a
+      // real COUNT(*), so there's no point paying that on every subsequent
+      // page. The Content-Range header (e.g. "0-999/47848") gives the true
+      // total immediately, before the rest of the table has streamed in.
       if (offset === 0) headers.Prefer = 'count=exact';
-      fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', { headers: headers })
-      .then(function (res) {
-        if (!res.ok && res.status !== 206) throw new Error('Supabase request failed: ' + res.status);
-        if (offset === 0) {
-          var range = res.headers.get('content-range');
-          var total = range && parseInt(range.split('/')[1], 10);
-          if (total) totalCount = total;
-        }
-        return res.json();
-      }).then(function (rows) {
-        (offset === 0 ? onFirstPage : onNextPage)(rows);
-        if (rows.length === BATCH) fetchPage(offset + BATCH);
-        else onComplete();
-      }).catch(function (err) {
-        if (offset === 0) onError(err);
-        else console.error('Provider directory: background page fetch failed', err);
-      });
+      return fetch(SUPABASE_URL + '/rest/v1/providers?select=*&order=name.asc', { headers: headers })
+        .then(function (res) {
+          if (!res.ok && res.status !== 206) throw new Error('Supabase request failed: ' + res.status);
+          if (offset === 0) {
+            var range = res.headers.get('content-range');
+            var total = range && parseInt(range.split('/')[1], 10);
+            if (total) totalCount = total;
+          }
+          return res.json();
+        });
     }
-    fetchPage(0);
+
+    // With ~48 pages to cover the full table, fetching them one at a time —
+    // wait for a response, then ask for the next — pays a full network
+    // round trip per page for no reason once the total row count is known:
+    // the offsets don't depend on each other. Fetching several pages
+    // concurrently cuts that wall-clock time roughly in proportion to the
+    // concurrency, without changing how much data crosses the wire. Pages
+    // can still resolve out of order, though, and providers is sorted by
+    // name — applying them out of order would show up as a visibly
+    // scrambled list — so results are buffered and handed to onNextPage
+    // strictly in offset order regardless of arrival order.
+    var pending = {};
+    var nextApplyOffset = null;
+    function drainPending() {
+      while (nextApplyOffset != null && pending.hasOwnProperty(nextApplyOffset)) {
+        var rows = pending[nextApplyOffset];
+        delete pending[nextApplyOffset];
+        onNextPage(rows);
+        nextApplyOffset = rows.length === BATCH ? nextApplyOffset + BATCH : null;
+      }
+    }
+
+    fetchOnePage(0).then(function (firstRows) {
+      onFirstPage(firstRows);
+      if (firstRows.length < BATCH) { onComplete(); return; }
+
+      nextApplyOffset = BATCH;
+      var nextFetchOffset = BATCH;
+      var inFlight = 0;
+      var stopped = false;
+
+      function launchNext() {
+        if (stopped) return;
+        var offset = nextFetchOffset;
+        nextFetchOffset += BATCH;
+        inFlight++;
+        fetchOnePage(offset).then(function (rows) {
+          inFlight--;
+          pending[offset] = rows;
+          drainPending();
+          if (rows.length === BATCH && !stopped) {
+            launchNext();
+          } else if (inFlight === 0) {
+            onComplete();
+          }
+        }).catch(function (err) {
+          inFlight--;
+          stopped = true;
+          console.error('Provider directory: background page fetch failed', err);
+          if (inFlight === 0) onComplete();
+        });
+      }
+      for (var i = 0; i < CONCURRENCY; i++) launchNext();
+    }).catch(onError);
   }
 
   // Whether every page has finished streaming in from Supabase. While this is
