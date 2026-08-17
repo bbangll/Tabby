@@ -716,6 +716,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6enZ6ZWd1ZGhkZ3dscmluaWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTU3OTUsImV4cCI6MjEwMjE3MTc5NX0.MZd2NFppM3KoOr3MprbABd_wZOWmwetV42bX7QKjiDY";
 
   var PROVIDERS = [];
+  // A separate list, same rows as PROVIDERS but each network page shuffled
+  // internally before being appended — used for the unfiltered/default view
+  // so a repeat visit doesn't always show the same alphabetically-first
+  // providers at the top. Kept apart from PROVIDERS (which stays in the
+  // server's name.asc order) rather than shuffling in place, since filtering
+  // is expected to fall back to normal alphabetical order. The whole
+  // 47,848-row table streams in over ~48 pages, so there's no single moment
+  // to shuffle the entire set at once — shuffling each page as it arrives is
+  // the practical middle ground: no waiting for the full table, no fighting
+  // the streaming/pagination this already relies on.
+  var SHUFFLED_PROVIDERS = [];
+  function shuffleInPlace(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
   var loaded = false;
   var loadFailed = false;
   var totalCount = null;
@@ -908,12 +926,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   streamAllProviders(
     function onFirstPage(rows) {
       PROVIDERS = rows.map(mapRow);
+      SHUFFLED_PROVIDERS = shuffleInPlace(PROVIDERS.slice());
       loaded = true;
       refreshFilterOptions();
       applyFilters();
     },
     function onNextPage(rows) {
-      PROVIDERS = PROVIDERS.concat(rows.map(mapRow));
+      var newRows = rows.map(mapRow);
+      PROVIDERS = PROVIDERS.concat(newRows);
+      SHUFFLED_PROVIDERS = SHUFFLED_PROVIDERS.concat(shuffleInPlace(newRows.slice()));
       scheduleFilterOptionsRefresh();
       // Re-derive the filtered pool rather than a full applyFilters(): since
       // new rows only ever land at the end of PROVIDERS, the already-rendered
@@ -1351,9 +1372,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // filtering is just an expensive way to copy the array. Skip straight to
   // a reference in that case — this path runs on every background page
   // during initial load (see onNextPage), where PROVIDERS can be tens of
-  // thousands of rows long by the last page.
+  // thousands of rows long by the last page. Filtering always searches
+  // PROVIDERS (stable name.asc order) rather than SHUFFLED_PROVIDERS, so
+  // narrowing down to a search or a filter drops back into normal
+  // alphabetical order — random order is only for the default, browse-
+  // everything view.
   function recomputeCurrentFiltered() {
-    currentFiltered = filtersActive() ? PROVIDERS.filter(matchesFilters) : PROVIDERS;
+    currentFiltered = filtersActive() ? PROVIDERS.filter(matchesFilters) : SHUFFLED_PROVIDERS;
   }
 
   function applyFilters() {
