@@ -238,6 +238,18 @@
   .dir-skel .dir-skel-row .dot{flex:none;width:18px;height:18px;border-radius:5px;background:var(--ow);}
   .dir-skel .dir-skel-row .dir-skel-line{flex:1;height:11px;}
   .dir-scroll-sentinel{height:1px;}
+  /* Sits outside the CSS grid entirely, so toggling it never triggers the
+     grid's placement algorithm — unlike the 28-card skeleton block this
+     replaced, which was a real grid child and forced a full grid relayout
+     on every show/hide, repeated on every pacing tick during fast scroll. */
+  .dir-loading-more-bar{display:none;align-items:center;justify-content:center;gap:10px;padding:26px 0;color:var(--tm);font-size:14px;font-weight:600;}
+  .dir-loading-more-bar.show{display:flex;}
+  .dir-loading-more-bar .spin{
+    width:16px;height:16px;border-radius:50%;flex:none;
+    border:2px solid var(--b);border-top-color:var(--p);
+    animation:dir-spin .7s linear infinite;
+  }
+  @keyframes dir-spin{to{transform:rotate(360deg);}}
 
   @media (max-width:640px){
     .dir-search-bar{border-radius:999px;padding:6px 6px 6px 16px;}
@@ -587,6 +599,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <div class="dir-main-wrap">
   <div class="dir-grid" id="dirProviderGrid"></div>
   <div id="dirLoadSentinel" class="dir-scroll-sentinel" aria-hidden="true"></div>
+  <div id="dirLoadingMoreBar" class="dir-loading-more-bar" aria-hidden="true"><span class="spin"></span>Loading more providers…</div>
 </div>
 
 <section class="section">
@@ -1029,10 +1042,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // built-in scroll anchoring (on by default) to keep the visible content
   // from jumping when they go.
   // A CSS Grid relayout still costs something even bounded — it's proportional
-  // to total grid children on every insertion, capped or not. 96 (8 batches)
-  // is still several screens of buffer on any real viewport, but noticeably
-  // lighter per-insertion than a larger cap during sustained fast scrolling.
-  var MAX_RENDERED = 96;
+  // to total grid children on every insertion, capped or not. 36 (3 batches)
+  // is still a couple of screens of buffer on any real viewport, measured
+  // against real per-insertion relayout cost under CPU throttling (a fast
+  // sandbox Chromium's "0 long tasks" doesn't reflect real hardware — see
+  // LOAD_DELAY_MS below) until it stopped showing up as dropped frames.
+  var MAX_RENDERED = 36;
   function pruneOffscreenCards() {
     // getBoundingClientRect() forces a synchronous layout reflow whenever
     // layout is already dirty from a DOM mutation — which it always is here,
@@ -1040,23 +1055,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // tick for as long as a fast scroll continues, was itself a real cost at
     // the real card weight/count. MAX_RENDERED is a generous multi-screen
     // buffer, so trust it instead of verifying each card's exact position —
-    // there's no layout read left in this path at all now.
-    var loadingMore = document.getElementById(LOADING_MORE_ID);
-    var realCount = grid.children.length - (loadingMore ? 1 : 0);
-    var excess = realCount - MAX_RENDERED;
+    // there's no layout read left in this path at all now. The loading-more
+    // bar lives outside the grid entirely, so every grid child here is a
+    // real provider card — no exclusion needed.
+    var excess = grid.children.length - MAX_RENDERED;
     for (var i = 0; i < excess; i++) {
       var first = grid.firstElementChild;
-      if (!first || first === loadingMore) break;
+      if (!first) break;
       grid.removeChild(first);
     }
   }
 
   function appendNextBatch() {
-    // The loading-more skeleton (if showing) is always the last grid child —
-    // strip it before appending real cards so they don't end up inserted
-    // after it. updateLoadMoreState() re-adds it at the new true end below
-    // if it's still needed.
-    hideLoadingMoreSkeletons();
     var start = renderedCount;
     var end = Math.min(start + PAGE_SIZE, currentFiltered.length);
     var html = '';
@@ -1069,23 +1079,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // Shown any time a batch is pending — either the deliberate pacing delay
-  // below, or a genuine wait on background streaming. A big, obvious block
-  // (rather than a token few cards) reads clearly as "loading", which is
-  // also exactly what naturally keeps a user from scrolling ahead of it.
-  // A wrapper with display:contents lets these skeleton cards drop straight
-  // into the grid's own layout.
-  var LOADING_MORE_ID = 'dirLoadingMoreSkeletons';
-  var LOADING_MORE_COUNT = 28;
-  function showLoadingMoreSkeletons() {
-    if (document.getElementById(LOADING_MORE_ID)) return;
-    var html = '<div id="' + LOADING_MORE_ID + '" style="display:contents;">' +
-      new Array(LOADING_MORE_COUNT).fill(0).map(skeletonCard).join('') + '</div>';
-    grid.insertAdjacentHTML('beforeend', html);
-  }
-  function hideLoadingMoreSkeletons() {
-    var el = document.getElementById(LOADING_MORE_ID);
-    if (el) el.remove();
-  }
+  // below, or a genuine wait on background streaming — as a plain "more is
+  // loading" cue. This used to be a block of 28 skeleton cards inserted
+  // straight into the CSS grid, which meant every show/hide forced the grid
+  // to re-run its placement algorithm across the whole grid — repeated on
+  // every pacing tick during a sustained fast scroll, which was the actual
+  // source of the lag/freeze. A bar that lives outside the grid gets the
+  // same "something is happening" signal across for free.
+  var loadingMoreBar = document.getElementById('dirLoadingMoreBar');
+  function showLoadingMoreSkeletons() { loadingMoreBar.classList.add('show'); }
+  function hideLoadingMoreSkeletons() { loadingMoreBar.classList.remove('show'); }
 
   function updateLoadMoreState() {
     var caughtUp = renderedCount >= currentFiltered.length;
@@ -1112,7 +1115,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // in one burst — building thousands of cards before the browser gets a chance
   // to paint, which is what was crashing the tab. Pacing each append with a real
   // delay, and re-checking afterwards, spreads that work over time instead.
-  var LOAD_DELAY_MS = 80;
+  var LOAD_DELAY_MS = 180;
   var loadScheduled = false;
   // Set from the IntersectionObserver callback below — IntersectionObserver
   // computes intersection off the main thread's synchronous layout path, so
@@ -1134,6 +1137,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }, LOAD_DELAY_MS);
   }
 
+  // A big scroll jump (trackpad flick, dragging the scrollbar) can carry the
+  // viewport clean over the sentinel within a single tick — it registers as
+  // entering *and* leaving the observer's margin back-to-back, before a load
+  // even starts. Once that happens the page has nothing left below the fold
+  // to scroll into, so nothing ever re-triggers the observer: the directory
+  // just stops dead wherever that jump landed, which reads as a freeze even
+  // though nothing is slow. Checking scroll distance to the bottom directly
+  // closes that gap — it fires off actual scroll position, not off crossing
+  // an element's edge, so it can't be jumped over the same way.
+  var scrollCheckScheduled = false;
+  function checkNearBottom() {
+    scrollCheckScheduled = false;
+    var doc = document.documentElement;
+    var nearBottom = (window.scrollY + window.innerHeight) >= (doc.scrollHeight - 800);
+    if (nearBottom) {
+      sentinelNearViewport = true;
+      maybeLoadMore();
+    }
+  }
+
   var scrollStopTimer;
   window.addEventListener('scroll', function () {
     document.body.classList.add('dir-is-scrolling');
@@ -1141,6 +1164,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     scrollStopTimer = setTimeout(function () {
       document.body.classList.remove('dir-is-scrolling');
     }, 150);
+    // rAF-coalesced: at most once per frame no matter how many scroll events
+    // fire in between, and only while a scroll gesture is actually happening.
+    if (!scrollCheckScheduled) {
+      scrollCheckScheduled = true;
+      requestAnimationFrame(checkNearBottom);
+    }
   }, { passive: true });
 
   var scrollObserver = new IntersectionObserver(function (entries) {
@@ -1148,7 +1177,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       sentinelNearViewport = entry.isIntersecting;
       if (entry.isIntersecting) maybeLoadMore();
     });
-  }, { rootMargin: '300px' });
+  }, { rootMargin: '600px' });
   scrollObserver.observe(sentinel);
 
   // Shared with the background page-merge handler above, so newly streamed-in
