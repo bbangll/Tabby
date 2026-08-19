@@ -156,13 +156,24 @@
         // standard event to find without any extra GTM configuration.
         window.dataLayer.push({ event: 'generate_lead', lead_type: formName });
         if (status) {
-          status.textContent = delivered === 'server'
-            ? "Thanks — your enquiry has been sent. We'll be in touch soon."
-            : "Opening your email app to send this enquiry to our team — if nothing opens, please call 0433 604 507.";
-          status.className = 'form-status ok';
+          var message = delivered === 'server'
+            ? "We've received it and will be in touch soon."
+            : "Opening your email app to send this to our team — if nothing opens, please call 0433 604 507.";
+          // A full-size panel, not a caption line under the button — the
+          // whole point is that submitting genuinely feels like something
+          // happened, not something a user has to squint to confirm.
+          status.innerHTML =
+            '<span class="form-success-icon"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></span>' +
+            '<h3>Thank you!</h3>' +
+            '<p>' + message + '</p>';
+          status.className = 'form-status ok show';
         }
-        if (submitBtn) submitBtn.textContent = 'Sent';
-        // submitBtn stays disabled: this form has already converted once.
+        // The rest of the form (fields, consent checkbox, submit button)
+        // steps aside once it's converted — form-note (the phone/email
+        // fallback) stays visible underneath.
+        Array.prototype.forEach.call(form.children, function (el) {
+          if (el !== status && !el.classList.contains('form-note')) el.style.display = 'none';
+        });
       };
 
       if (FORM_ENDPOINT) {

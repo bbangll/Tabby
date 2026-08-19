@@ -302,8 +302,21 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .form-submit:hover{background:#3a6232;transform:translateY(-1px)}
 .form-submit:disabled{opacity:.6;cursor:wait}
 .form-status{font-size:13px;font-weight:600;margin-top:12px;min-height:1px}
-.form-status.ok{color:var(--g)}
 .form-status.err{color:#b3261e}
+/* The success state is a full panel, not a caption line — replaces the
+   whole form (see main.js) so submitting reads as unmistakably done. */
+.form-status.ok.show{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;
+  padding:34px 24px;background:var(--gl);border:1.5px solid var(--g);border-radius:var(--rl);
+  margin-top:4px;color:var(--t);
+}
+.form-status.ok.show .form-success-icon{
+  width:56px;height:56px;border-radius:50%;background:var(--g);color:#fff;
+  display:flex;align-items:center;justify-content:center;flex:none;
+}
+.form-status.ok.show .form-success-icon svg{width:30px;height:30px}
+.form-status.ok.show h3{margin:2px 0 0;font-family:var(--fd);font-size:23px;font-weight:700;color:var(--n)}
+.form-status.ok.show p{margin:0;font-size:15px;line-height:1.55;max-width:380px}
 .form-note{font-size:11px;color:var(--tm);text-align:center;margin-top:10px}
 
 /* ── REFERRAL CTA ── */
